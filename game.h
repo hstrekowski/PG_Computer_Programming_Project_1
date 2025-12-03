@@ -29,6 +29,7 @@
 #define MAX_STARS 100
 #define FRAME_RATE 45
 #define DURATION_SECONDS 60
+#define BASE_MOVE_RATE 10
 
 typedef struct Stats
 {

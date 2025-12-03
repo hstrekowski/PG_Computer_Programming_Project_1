@@ -31,7 +31,7 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow)
     int frame_counter = 0;
     const int SLEEP_TIME_US = 1000000 / FRAME_RATE;
 
-    int move_counter = 10;
+    int move_counter = BASE_MOVE_RATE;
     int star_index_to_spawn = 0;
 
     srand(time(NULL));

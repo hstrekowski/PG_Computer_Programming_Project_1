@@ -57,8 +57,6 @@ int handle_input(WINDOW *gameScreen, Swallow *swallow)
 
 void update_swallow_position(WINDOW *gameScreen, Swallow *swallow, int *move_counter)
 {
-    int base_move_rate = 10;
-
     if (*move_counter <= 0)
     {
         int prev_y = swallow->y;
@@ -97,7 +95,7 @@ void update_swallow_position(WINDOW *gameScreen, Swallow *swallow, int *move_cou
         mvwprintw(gameScreen, swallow->y, swallow->x, "%s", swallow->sign);
 
         // Reset licznika ruchu
-        *move_counter = base_move_rate / swallow->speed;
+        *move_counter = BASE_MOVE_RATE / swallow->speed;
         if (*move_counter < 1)
             *move_counter = 1;
     }
