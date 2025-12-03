@@ -3,19 +3,27 @@
 #include <stdlib.h>
 #include <time.h>
 
-#define WINDOW_HEIGHT 36
+// Screen constansts
+#define WINDOW_HEIGHT 40
 #define WINDOW_WIDTH 134
 
-#define GAME_SCREEN_HEIGHT 27
+#define GAME_SCREEN_HEIGHT 29
 #define GAME_SCREEN_WIDTH 132
 
-#define STATUS_AREA_HEIGHT 7
+#define STATUS_AREA_HEIGHT 9
 #define STATUS_AREA_WIDTH 132
 
+// Direction constants
 #define UP 99
 #define DOWN 98
 #define LEFT 97
 #define RIGHT 96
+
+// Swallow sign constants
+#define UP_SIGN "^"
+#define DOWN_SIGN "v"
+#define LEFT_SIGN "<"
+#define RIGHT_SIGN ">"
 
 typedef struct Swallow
 {
@@ -50,20 +58,19 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow)
     const int SLEEP_TIME_US = 1000000 / FRAME_RATE;
 
     int total_frames = DURATION_SECONDS * FRAME_RATE;
-    int move_counter = 0;
 
-    move_counter = 10;
+    int base_move_rate = 10; // jaskółka rusza się co 10 klatek przy speed = 1
+    int move_counter = base_move_rate;
 
-    // Rysowanie jaskółki na początku (jeśli nie jest w main)
+    // Rysowanie jaskółki na początku
     mvwprintw(gameScreen, swallow->y, swallow->x, "%s", swallow->sign);
     wrefresh(gameScreen);
 
-    // Inicjalizacja generatora liczb losowych
     srand(time(NULL));
 
     while (total_frames > 0)
     {
-        // 1. ASYNCHRONICZNE ODBIERANIE INPUTU
+        // Odbieranie inputu
         int ch = wgetch(gameScreen);
 
         if (ch != ERR)
@@ -73,64 +80,72 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow)
             case 'w':
             case 'W':
                 swallow->direction = UP;
+                swallow->sign = UP_SIGN;
                 break;
             case 's':
             case 'S':
                 swallow->direction = DOWN;
+                swallow->sign = DOWN_SIGN;
                 break;
             case 'a':
             case 'A':
                 swallow->direction = LEFT;
+                swallow->sign = LEFT_SIGN;
                 break;
             case 'd':
             case 'D':
                 swallow->direction = RIGHT;
+                swallow->sign = RIGHT_SIGN;
                 break;
             case 'q':
             case 'Q':
                 total_frames = 0;
                 break;
+
+            // Zmiana prędkości
             case 'o':
             case 'O':
-                swallow->speed--;
+                if (swallow->speed > 1)
+                    swallow->speed--;
                 break;
             case 'p':
             case 'P':
-                swallow->speed++;
+                if (swallow->speed < 5)
+                    swallow->speed++;
                 break;
+
             default:
                 break;
             }
         }
 
-        // 2. LOGIKA RUCHU JASKÓŁKI (co sekundę, move_counter = 10)
-        if (move_counter == 0)
+        // LOGIKA RUCHU — płynna
+        if (move_counter <= 0)
         {
-
             int prev_y = swallow->y;
             int prev_x = swallow->x;
 
+            // JASKÓŁKA ZAWSZE RUSZA SIĘ O 1 KRATKĘ
             switch (swallow->direction)
             {
             case UP:
-                swallow->y -= swallow->speed;
+                swallow->y--;
                 break;
             case DOWN:
-                swallow->y += swallow->speed;
+                swallow->y++;
                 break;
             case LEFT:
-                swallow->x -= swallow->speed;
+                swallow->x--;
                 break;
             case RIGHT:
-                swallow->x += swallow->speed;
-                break;
-            default:
+                swallow->x++;
                 break;
             }
 
-            mvwprintw(gameScreen, prev_y, prev_x, "%s", " ");
+            // Czyszczenie poprzedniego miejsca
+            mvwprintw(gameScreen, prev_y, prev_x, " ");
 
-            // Sprawdzanie granic
+            // Granice
             if (swallow->y < 1)
                 swallow->y = 1;
             if (swallow->y > GAME_SCREEN_HEIGHT - 2)
@@ -140,16 +155,19 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow)
             if (swallow->x > GAME_SCREEN_WIDTH - 2)
                 swallow->x = GAME_SCREEN_WIDTH - 2;
 
+            // Rysowanie nowej pozycji
             mvwprintw(gameScreen, swallow->y, swallow->x, "%s", swallow->sign);
 
-            move_counter = 10;
+            // Ustawienie czasu do następnego ruchu zależnie od prędkości
+            move_counter = base_move_rate / swallow->speed;
+            if (move_counter < 1)
+                move_counter = 1;
         }
 
-        // 4. ODŚWIEŻANIE I OCZEKIWANIE
+        // ODŚWIEŻANIE I SLEEP
         wrefresh(gameScreen);
         usleep(SLEEP_TIME_US);
 
-        // Aktualizacja liczników
         total_frames--;
         move_counter--;
     }
@@ -161,6 +179,7 @@ int main()
     initscr();
     cbreak();
     noecho();
+    curs_set(0);
 
     // Window Setup
     int max_y, max_x;
