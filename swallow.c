@@ -78,20 +78,41 @@ void update_swallow_position(WINDOW *gameScreen, Swallow *swallow, int *move_cou
             break;
         }
 
-        // Czyszczenie poprzedniego miejsca
-        mvwprintw(gameScreen, prev_y, prev_x, " ");
+        // 2. LOGIKA ODBIJANIA (BOUNCE LOGIC)
+        // Sprawdzamy, czy nowa pozycja jest poza granicami.
+        // Jeśli tak: zmieniamy kierunek, znak i pozycję na "odbite".
 
-        // Granice
+        // Górna ściana (Y=1 to pierwsza legalna pozycja)
         if (swallow->y < 1)
-            swallow->y = 1;
-        if (swallow->y > GAME_SCREEN_HEIGHT - 2)
-            swallow->y = GAME_SCREEN_HEIGHT - 2;
-        if (swallow->x < 1)
-            swallow->x = 1;
-        if (swallow->x > GAME_SCREEN_WIDTH - 2)
-            swallow->x = GAME_SCREEN_WIDTH - 2;
+        {
+            swallow->y = 2; // Odbijamy na pozycję 2
+            swallow->direction = DOWN;
+            swallow->sign = DOWN_SIGN;
+        }
+        // Dolna ściana
+        else if (swallow->y > GAME_SCREEN_HEIGHT - 2)
+        {
+            swallow->y = GAME_SCREEN_HEIGHT - 3; // Odbijamy w górę
+            swallow->direction = UP;
+            swallow->sign = UP_SIGN;
+        }
+        // Lewa ściana
+        else if (swallow->x < 1)
+        {
+            swallow->x = 2; // Odbijamy w prawo
+            swallow->direction = RIGHT;
+            swallow->sign = RIGHT_SIGN;
+        }
+        // Prawa ściana
+        else if (swallow->x > GAME_SCREEN_WIDTH - 2)
+        {
+            swallow->x = GAME_SCREEN_WIDTH - 3; // Odbijamy w lewo
+            swallow->direction = LEFT;
+            swallow->sign = LEFT_SIGN;
+        }
 
-        // Rysowanie nowej pozycji
+        // 3. Rysowanie (najpierw czyścimy stare, potem rysujemy nowe)
+        mvwprintw(gameScreen, prev_y, prev_x, " ");
         mvwprintw(gameScreen, swallow->y, swallow->x, "%s", swallow->sign);
 
         // Reset licznika ruchu
@@ -99,6 +120,4 @@ void update_swallow_position(WINDOW *gameScreen, Swallow *swallow, int *move_cou
         if (*move_counter < 1)
             *move_counter = 1;
     }
-
-    // Dekrementacja licznika w głównej pętli, ale logika resetu jest tutaj
 }
