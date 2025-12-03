@@ -11,6 +11,7 @@ typedef struct Star
     char *sign;
     int is_active;
     int move_timer;
+    int speed_delay;
 } Star;
 
 void init_stars(Star stars[]);

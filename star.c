@@ -1,5 +1,5 @@
 #include "star.h"
-#include <stdlib.h> // dla rand()
+#include <stdlib.h>
 
 void init_stars(Star stars[])
 {
@@ -10,6 +10,7 @@ void init_stars(Star stars[])
         stars[i].x = 0;
         stars[i].y = 0;
         stars[i].move_timer = 0;
+        stars[i].speed_delay = 0;
     }
 }
 
@@ -21,9 +22,18 @@ void try_spawn_star(Star stars[], int *star_index_to_spawn, int frame_counter)
     {
         Star *current_star = &stars[*star_index_to_spawn];
         current_star->is_active = 1;
+
+        // Losowanie pozycji X
         current_star->x = (rand() % (GAME_SCREEN_WIDTH - 2)) + 1;
         current_star->y = 1;
-        current_star->move_timer = 10;
+
+        // LOSOWANIE PRĘDKOŚCI
+        // Losujemy opóźnienie od 2 (bardzo szybka) do 15 (wolna)
+        // rand() % 14 daje zakres 0-13, plus 2 daje zakres 2-15.
+        int random_speed = (rand() % 14) + 2;
+
+        current_star->speed_delay = random_speed;
+        current_star->move_timer = random_speed;
 
         (*star_index_to_spawn)++;
     }
@@ -55,7 +65,10 @@ void update_stars(WINDOW *gameScreen, Star stars[], Swallow *swallow, Stats *sta
                 {
                     mvwprintw(gameScreen, prev_y, star->x, " ");
                 }
-                star->move_timer = 10;
+
+                // RESET TIMERA DO INDYWIDUALNEJ PRĘDKOŚCI GWIAZDY
+                // Zamiast sztywnego '= 10', używamy wylosowanej wartości
+                star->move_timer = star->speed_delay;
             }
             else
             {
