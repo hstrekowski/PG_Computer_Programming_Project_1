@@ -40,7 +40,8 @@ typedef struct Star
     int x;
     int y;
     char *sign;
-    int active; // 1 = aktywna, 0 = nieaktywna
+    int is_active;
+    int move_timer;
 } Star;
 
 void refresh_windows(WINDOW *windows[], int n)
@@ -58,15 +59,35 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow)
     const int SLEEP_TIME_US = 1000000 / FRAME_RATE;
 
     int total_frames = DURATION_SECONDS * FRAME_RATE;
+    int frame_counter = 0;
 
     int base_move_rate = 10; // jaskółka rusza się co 10 klatek przy speed = 1
     int move_counter = base_move_rate;
 
+    // Konfiguracja spawnowania gwiazd
+    const int MAX_STARS = 6;
+    // (60 sekund / 6 gwiazd) * FRAME_RATE = 10s * 45 klatek = 450 klatek
+    const int STAR_SPAWN_FREQUENCY_FRAMES = (DURATION_SECONDS / MAX_STARS) * FRAME_RATE;
+    int star_index_to_spawn = 0; // Którą gwiazdę aktywować następną
+
+    srand(time(NULL));
+
+    // Stars config
+    Star stars[6];
+    for (int i = 0; i < 6; i++)
+    {
+        Star star;
+        star.is_active = 0;
+        star.x = (rand() % (GAME_SCREEN_WIDTH - 1)) + 1;
+        star.y = 1;
+        star.sign = "*";
+        stars[i].move_timer = 5;
+        stars[i] = star;
+    }
+
     // Rysowanie jaskółki na początku
     mvwprintw(gameScreen, swallow->y, swallow->x, "%s", swallow->sign);
     wrefresh(gameScreen);
-
-    srand(time(NULL));
 
     while (total_frames > 0)
     {
@@ -164,11 +185,67 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow)
                 move_counter = 1;
         }
 
+        if (frame_counter % STAR_SPAWN_FREQUENCY_FRAMES == 0 && star_index_to_spawn < MAX_STARS)
+        {
+            Star *current_star = &stars[star_index_to_spawn];
+            current_star->is_active = 1;
+            // Losowanie pozycji X na górnej krawędzi (Y=1)
+            current_star->x = (rand() % (GAME_SCREEN_WIDTH - 2)) + 1;
+            current_star->y = 1;
+            current_star->move_timer = 10;
+
+            star_index_to_spawn++;
+        }
+
+        // RUCH I RYSOWANIE GWIAZD
+        for (int i = 0; i < MAX_STARS; i++)
+        {
+            Star *star = &stars[i];
+
+            if (star->is_active)
+            {
+                // 1. Sprawdzenie, czy nadszedł czas na ruch
+                if (star->move_timer <= 0)
+                {
+                    int prev_y = star->y;
+
+                    // RUCH W DÓŁ
+                    star->y++;
+
+                    // Czyszczenie starej pozycji
+                    if (prev_y < GAME_SCREEN_HEIGHT - 1)
+                    {
+                        mvwprintw(gameScreen, prev_y, star->x, " ");
+                    }
+
+                    // Reset timera ruchu
+                    star->move_timer = 10;
+                }
+                else
+                {
+                    // Odejmij 1 od licznika ruchu w każdej klatce
+                    star->move_timer--;
+                }
+
+                // 2. Sprawdzanie granic i rysowanie
+                if (star->y >= GAME_SCREEN_HEIGHT - 1) // Wyszła poza dolną krawędź
+                {
+                    star->is_active = 0;
+                }
+                else if (star->is_active)
+                {
+                    // Rysowanie nowej pozycji (dopóki jest aktywna i w granicach)
+                    mvwprintw(gameScreen, star->y, star->x, "%s", star->sign);
+                }
+            }
+        }
+
         // ODŚWIEŻANIE I SLEEP
         wrefresh(gameScreen);
         usleep(SLEEP_TIME_US);
 
         total_frames--;
+        frame_counter++;
         move_counter--;
     }
 }
