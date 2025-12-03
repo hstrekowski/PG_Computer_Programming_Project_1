@@ -25,6 +25,9 @@
 #define LEFT_SIGN "<"
 #define RIGHT_SIGN ">"
 
+int score = 0;
+int starsFumbled = 0;
+
 typedef struct Swallow
 {
     int x;
@@ -52,6 +55,15 @@ void refresh_windows(WINDOW *windows[], int n)
     }
 }
 
+void update_status(WINDOW *statusArea, int score, int seconds, int speed, int starsFumbled)
+{
+    mvwprintw(statusArea, 1, 1, "Score: %d", score);
+    mvwprintw(statusArea, 3, 1, "Seconds left: %d", seconds);
+    mvwprintw(statusArea, 5, 1, "Your speed %d", speed);
+    mvwprintw(statusArea, 7, 1, "Stars fumbled: %d", starsFumbled);
+    wrefresh(statusArea);
+}
+
 void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow)
 {
     const int DURATION_SECONDS = 60;
@@ -60,21 +72,22 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow)
 
     int total_frames = DURATION_SECONDS * FRAME_RATE;
     int frame_counter = 0;
+    int secondsPassed = 0;
 
     int base_move_rate = 10; // jaskółka rusza się co 10 klatek przy speed = 1
     int move_counter = base_move_rate;
 
     // Konfiguracja spawnowania gwiazd
-    const int MAX_STARS = 6;
+    const int MAX_STARS = 100;
     // (60 sekund / 6 gwiazd) * FRAME_RATE = 10s * 45 klatek = 450 klatek
-    const int STAR_SPAWN_FREQUENCY_FRAMES = (DURATION_SECONDS / MAX_STARS) * FRAME_RATE;
+    const int STAR_SPAWN_FREQUENCY_FRAMES = 15;
     int star_index_to_spawn = 0; // Którą gwiazdę aktywować następną
 
     srand(time(NULL));
 
     // Stars config
-    Star stars[6];
-    for (int i = 0; i < 6; i++)
+    Star stars[MAX_STARS];
+    for (int i = 0; i < MAX_STARS; i++)
     {
         Star star;
         star.is_active = 0;
@@ -204,8 +217,16 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow)
 
             if (star->is_active)
             {
+                if (star->x == swallow->x && star->y == swallow->y)
+                {
+                    mvwprintw(gameScreen, star->y, star->x, "%s", " ");
+                    score++;
+                    update_status(statusArea, score, total_frames / 60, swallow->speed, starsFumbled);
+
+                    star->is_active = 0;
+                }
                 // 1. Sprawdzenie, czy nadszedł czas na ruch
-                if (star->move_timer <= 0)
+                else if (star->move_timer <= 0)
                 {
                     int prev_y = star->y;
 
@@ -230,6 +251,7 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow)
                 // 2. Sprawdzanie granic i rysowanie
                 if (star->y >= GAME_SCREEN_HEIGHT - 1) // Wyszła poza dolną krawędź
                 {
+                    starsFumbled++;
                     star->is_active = 0;
                 }
                 else if (star->is_active)
@@ -241,6 +263,7 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow)
         }
 
         // ODŚWIEŻANIE I SLEEP
+        update_status(statusArea, score, total_frames / 60, swallow->speed, starsFumbled);
         wrefresh(gameScreen);
         usleep(SLEEP_TIME_US);
 
