@@ -28,6 +28,12 @@
 int score = 0;
 int starsFumbled = 0;
 
+typedef struct Stats
+{
+    int score;
+    int starsFumbled;
+} Stats;
+
 typedef struct Swallow
 {
     int x;
@@ -66,6 +72,10 @@ void update_status(WINDOW *statusArea, int score, int seconds, int speed, int st
 
 void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow)
 {
+    Stats stats;
+    stats.score = 0;
+    stats.starsFumbled = 0;
+
     const int DURATION_SECONDS = 60;
     const int FRAME_RATE = 45;
     const int SLEEP_TIME_US = 1000000 / FRAME_RATE;
@@ -91,10 +101,7 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow)
     {
         Star star;
         star.is_active = 0;
-        star.x = (rand() % (GAME_SCREEN_WIDTH - 1)) + 1;
-        star.y = 1;
         star.sign = "*";
-        stars[i].move_timer = 5;
         stars[i] = star;
     }
 
@@ -220,8 +227,8 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow)
                 if (star->x == swallow->x && star->y == swallow->y)
                 {
                     mvwprintw(gameScreen, star->y, star->x, "%s", " ");
-                    score++;
-                    update_status(statusArea, score, total_frames / 60, swallow->speed, starsFumbled);
+                    stats.score++;
+                    update_status(statusArea, stats.score, total_frames / 60, swallow->speed, stats.starsFumbled);
 
                     star->is_active = 0;
                 }
@@ -251,7 +258,7 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow)
                 // 2. Sprawdzanie granic i rysowanie
                 if (star->y >= GAME_SCREEN_HEIGHT - 1) // Wyszła poza dolną krawędź
                 {
-                    starsFumbled++;
+                    stats.starsFumbled++;
                     star->is_active = 0;
                 }
                 else if (star->is_active)
@@ -263,7 +270,7 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow)
         }
 
         // ODŚWIEŻANIE I SLEEP
-        update_status(statusArea, score, total_frames / 60, swallow->speed, starsFumbled);
+        update_status(statusArea, stats.score, total_frames / 60, swallow->speed, stats.starsFumbled);
         wrefresh(gameScreen);
         usleep(SLEEP_TIME_US);
 
