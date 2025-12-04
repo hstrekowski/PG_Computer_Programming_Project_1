@@ -15,13 +15,48 @@ void refresh_windows(WINDOW *windows[], int n)
     }
 }
 
-void update_status(WINDOW *statusArea, int score, int lifeForce, int seconds, int speed, int starsFumbled)
+void update_status(WINDOW *statusArea, PlayerConfig *config, int score, int lifeForce, int seconds, int speed, int starsFumbled)
 {
-    mvwprintw(statusArea, 1, 1, "Score: %d     ", score);
-    mvwprintw(statusArea, 1, 30, "Lives: %d ", lifeForce);
-    mvwprintw(statusArea, 3, 1, "Seconds left: %d   ", seconds);
-    mvwprintw(statusArea, 5, 1, "Your speed %d     ", speed);
-    mvwprintw(statusArea, 7, 1, "Stars fumbled: %d   ", starsFumbled);
+    werase(statusArea);
+    box(statusArea, 0, 0);
+
+    // Wiersz 1: Nick i Level
+    mvwprintw(statusArea, 1, 2, "PLAYER: %s", config->name);
+    mvwprintw(statusArea, 1, 40, "LEVEL: %d", config->startLevel);
+
+    // Wiersz 2: Główne statystyki (Score, Lives, Time)
+    mvwprintw(statusArea, 2, 2, "SCORE: %d", score);
+
+    // Kolorowanie żyć dla lepszej widoczności
+    wattron(statusArea, COLOR_PAIR(lifeForce <= 1 ? PAIR_RED : (lifeForce == 2 ? PAIR_ORANGE : PAIR_WHITE)));
+    mvwprintw(statusArea, 2, 40, "LIVES: %d", lifeForce);
+    wattroff(statusArea, COLOR_PAIR(lifeForce <= 1 ? PAIR_RED : (lifeForce == 2 ? PAIR_ORANGE : PAIR_WHITE)));
+
+    mvwprintw(statusArea, 2, 70, "TIME: %d s", seconds);
+
+    // Wiersz 3: Dodatkowe statystyki
+    mvwprintw(statusArea, 3, 2, "FUMBLED: %d", starsFumbled);
+    mvwprintw(statusArea, 3, 40, "SPEED: %d", speed);
+
+    // --- SEKCJA 2: LINIA PODZIAŁU (Wiersz 4) ---
+    mvwhline(statusArea, 4, 1, 0, STATUS_AREA_WIDTH - 2); // Rysuje poziomą linię
+
+    // --- SEKCJA 3: STEROWANIE (Wiersze 5-7) ---
+    mvwprintw(statusArea, 5, 2, "[ CONTROLS ]");
+
+    // Ruch
+    mvwprintw(statusArea, 5, 20, "W / S - Move Up/Down");
+    mvwprintw(statusArea, 5, 55, "A / D - Move Left/Right");
+
+    // Akcje
+    mvwprintw(statusArea, 6, 20, "O - Decrease Speed");
+    mvwprintw(statusArea, 6, 55, "P - Increase Speed");
+
+    // Wyjście (wyróżnione kolorem czerwonym)
+    wattron(statusArea, COLOR_PAIR(PAIR_RED));
+    mvwprintw(statusArea, 6, 90, "Q - QUIT GAME");
+    wattroff(statusArea, COLOR_PAIR(PAIR_RED));
+
     wrefresh(statusArea);
 }
 
@@ -98,7 +133,7 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, Pla
     wattroff(gameScreen, COLOR_PAIR(PAIR_WHITE));
     wrefresh(gameScreen);
 
-    update_status(statusArea, stats.score, swallow->lifeForce, total_frames / FRAME_RATE, swallow->speed, stats.starsFumbled);
+    update_status(statusArea, config, stats.score, swallow->lifeForce, total_frames / FRAME_RATE, swallow->speed, stats.starsFumbled);
 
     // --- GŁÓWNA PĘTLA GRY ---
     while (total_frames > 0)
@@ -120,7 +155,7 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, Pla
             break;
         }
 
-        update_status(statusArea, stats.score, swallow->lifeForce, total_frames / FRAME_RATE, swallow->speed, stats.starsFumbled);
+        update_status(statusArea, config, stats.score, swallow->lifeForce, total_frames / FRAME_RATE, swallow->speed, stats.starsFumbled);
 
         wrefresh(gameScreen);
         usleep(SLEEP_TIME_US);

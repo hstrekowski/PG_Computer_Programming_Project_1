@@ -57,7 +57,7 @@ typedef struct PlayerConfig
 
 // Pomocnicze funkcje UI
 void refresh_windows(WINDOW *windows[], int n);
-void update_status(WINDOW *statusArea, int score, int lifeForce, int seconds, int speed, int starsFumbled);
+void update_status(WINDOW *statusArea, PlayerConfig *config, int score, int lifeForce, int seconds, int speed, int starsFumbled);
 
 void show_start_screen(WINDOW *gameScreen, PlayerConfig *config);
 
