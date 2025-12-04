@@ -45,7 +45,9 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow)
     Hunter hunters[MAX_HUNTERS];
     init_hunters(hunters);
 
+    wattron(gameScreen, COLOR_PAIR(PAIR_WHITE));
     mvwprintw(gameScreen, swallow->y, swallow->x, "%s", swallow->sign);
+    wattroff(gameScreen, COLOR_PAIR(PAIR_WHITE));
     wrefresh(gameScreen);
 
     update_status(statusArea, stats.score, swallow->lifeForce, total_frames / FRAME_RATE, swallow->speed, stats.starsFumbled);
@@ -96,5 +98,5 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow)
     mvwprintw(gameScreen, center_y - 1, center_x - (strlen(msg_game_over) / 2), "%s", msg_game_over);
     mvwprintw(gameScreen, center_y + 1, center_x - (strlen(msg_stats) / 2), "%s", msg_stats);
 
-        wrefresh(gameScreen);
+    wrefresh(gameScreen);
 }

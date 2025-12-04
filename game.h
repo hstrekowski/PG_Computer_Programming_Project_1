@@ -32,6 +32,9 @@
 #define BASE_MOVE_RATE 10
 #define MAX_HUNTERS 10
 
+#define PAIR_WHITE 1
+#define PAIR_ORANGE 2
+#define PAIR_RED 3
 typedef struct Stats
 {
     int score;

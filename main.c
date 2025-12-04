@@ -10,6 +10,18 @@ int main()
     noecho();
     curs_set(0);
 
+    // Colors Setup
+    if (has_colors())
+    {
+        start_color();
+        use_default_colors();
+
+        // ID pary, Kolor tekstu, Kolor tła
+        init_pair(PAIR_WHITE, COLOR_WHITE, -1);
+        init_pair(PAIR_ORANGE, COLOR_YELLOW, -1);
+        init_pair(PAIR_RED, COLOR_RED, -1);
+    }
+
     // Window Setup
     int max_y, max_x;
     getmaxyx(stdscr, max_y, max_x);

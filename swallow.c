@@ -107,11 +107,25 @@ void update_swallow_position(WINDOW *gameScreen, Swallow *swallow, int *move_cou
             swallow->sign = LEFT_SIGN;
         }
 
-        // 3. Rysowanie (najpierw czyścimy stare, potem rysujemy nowe)
+        // --- Rysowanie ---
         mvwprintw(gameScreen, prev_y, prev_x, " ");
-        mvwprintw(gameScreen, swallow->y, swallow->x, "%s", swallow->sign);
 
-        // Reset licznika ruchu
+        // ZMIANA: Dobór koloru
+        int color_pair = PAIR_WHITE; // Domyślny (3 życia lub więcej)
+        if (swallow->lifeForce == 2)
+        {
+            color_pair = PAIR_ORANGE;
+        }
+        else if (swallow->lifeForce <= 1)
+        {
+            color_pair = PAIR_RED;
+        }
+
+        // Włącz kolor -> Rysuj -> Wyłącz kolor
+        wattron(gameScreen, COLOR_PAIR(color_pair));
+        mvwprintw(gameScreen, swallow->y, swallow->x, "%s", swallow->sign);
+        wattroff(gameScreen, COLOR_PAIR(color_pair));
+
         *move_counter = BASE_MOVE_RATE / swallow->speed;
         if (*move_counter < 1)
             *move_counter = 1;
