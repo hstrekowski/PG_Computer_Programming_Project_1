@@ -54,20 +54,20 @@ void update_stars(WINDOW *gameScreen, Star stars[], Swallow *swallow, Stats *sta
                 stats->score++;
                 star->is_active = 0;
             }
+
             // RUCH GWIAZDY
             else if (star->move_timer <= 0)
             {
                 int prev_y = star->y;
                 star->y++;
 
-                // Czyszczenie starej pozycji
+                // CZYSZCZENIE STAREJ POZYCJI
                 if (prev_y < GAME_SCREEN_HEIGHT - 1)
                 {
                     mvwprintw(gameScreen, prev_y, star->x, " ");
                 }
 
                 // RESET TIMERA DO INDYWIDUALNEJ PRĘDKOŚCI GWIAZDY
-                // Zamiast sztywnego '= 10', używamy wylosowanej wartości
                 star->move_timer = star->speed_delay;
             }
             else

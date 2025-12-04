@@ -7,7 +7,7 @@ void init_swallow(Swallow *swallow)
     swallow->direction = UP;
     swallow->sign = UP_SIGN;
     swallow->speed = 1;
-    swallow->lifeForce = 100;
+    swallow->lifeForce = 3;
 }
 
 int handle_input(WINDOW *gameScreen, Swallow *swallow)
@@ -78,11 +78,7 @@ void update_swallow_position(WINDOW *gameScreen, Swallow *swallow, int *move_cou
             break;
         }
 
-        // 2. LOGIKA ODBIJANIA (BOUNCE LOGIC)
-        // Sprawdzamy, czy nowa pozycja jest poza granicami.
-        // Jeśli tak: zmieniamy kierunek, znak i pozycję na "odbite".
-
-        // Górna ściana (Y=1 to pierwsza legalna pozycja)
+        // Górna ściana
         if (swallow->y < 1)
         {
             swallow->y = 2; // Odbijamy na pozycję 2

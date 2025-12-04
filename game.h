@@ -30,6 +30,7 @@
 #define FRAME_RATE 45
 #define DURATION_SECONDS 60
 #define BASE_MOVE_RATE 10
+#define MAX_HUNTERS 10
 
 typedef struct Stats
 {
@@ -39,7 +40,7 @@ typedef struct Stats
 
 // Pomocnicze funkcje UI
 void refresh_windows(WINDOW *windows[], int n);
-void update_status(WINDOW *statusArea, int score, int seconds, int speed, int starsFumbled);
+void update_status(WINDOW *statusArea, int score, int lifeForce, int seconds, int speed, int starsFumbled);
 
 struct Swallow;
 
