@@ -25,7 +25,55 @@ void update_status(WINDOW *statusArea, int score, int lifeForce, int seconds, in
     wrefresh(statusArea);
 }
 
-void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow)
+// NOWE: Funkcja ekranu startowego
+void show_start_screen(WINDOW *gameScreen, PlayerConfig *config)
+{
+    // 1. Włączamy kursor i echo, żeby widzieć wpisywanie
+    echo();
+    curs_set(1);
+
+    // 2. Obliczamy środek dla boxa
+    int box_h = 10;
+    int box_w = 50;
+    int start_y = (GAME_SCREEN_HEIGHT - box_h) / 2;
+    int start_x = (GAME_SCREEN_WIDTH - box_w) / 2;
+
+    // 3. Tworzymy tymczasowe okno wewnątrz gameScreen (derwin)
+    WINDOW *inputWin = derwin(gameScreen, box_h, box_w, start_y, start_x);
+    box(inputWin, 0, 0); // Ramka
+
+    // Tytuł w ramce
+    const char *title = " GAME SETUP ";
+    mvwprintw(inputWin, 0, (box_w - strlen(title)) / 2, "%s", title);
+
+    // 4. Pole NICK
+    mvwprintw(inputWin, 3, 4, "Enter your Nickname:");
+    wrefresh(inputWin);
+
+    // Przesuwamy kursor i pobieramy string
+    mvwgetnstr(inputWin, 4, 4, config->name, 29); // Max 29 znaków
+
+    // 5. Pole POZIOM
+    mvwprintw(inputWin, 6, 4, "Enter Level (1-10):");
+    wrefresh(inputWin);
+
+    // Pobieramy poziom jako string, a potem konwertujemy na int
+    char level_str[10];
+    mvwgetnstr(inputWin, 7, 4, level_str, 9);
+    config->startLevel = atoi(level_str); // atoi zamienia string na int
+
+    // 6. Sprzątanie
+    delwin(inputWin);      // Usuwamy okienko inputu
+    wclear(gameScreen);    // Czyścimy ekran gry ze śmieci po inputcie
+    box(gameScreen, 0, 0); // Przywracamy ramkę gry
+    wrefresh(gameScreen);
+
+    // Wyłączamy kursor i echo (tryb gry)
+    noecho();
+    curs_set(0);
+}
+
+void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, PlayerConfig *config)
 {
     Stats stats = {0, 0};
 
@@ -90,7 +138,8 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow)
     const char *msg_game_over = "GAME OVER";
     char msg_stats[100];
     int final_lives = swallow->lifeForce < 0 ? 0 : swallow->lifeForce;
-    sprintf(msg_stats, "Score: %d  |  Lives: %d  |  Stars Fumbled: %d", stats.score, final_lives, stats.starsFumbled);
+
+    sprintf(msg_stats, "Player: %s  |  Score: %d  |  Lives: %d", config->name, stats.score, final_lives);
 
     int center_y = GAME_SCREEN_HEIGHT / 2;
     int center_x = GAME_SCREEN_WIDTH / 2;

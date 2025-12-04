@@ -56,7 +56,12 @@ int main()
     // Game Init
     Swallow my_swallow;
     init_swallow(&my_swallow);
-    run_game_loop(gameScreen, statusArea, &my_swallow);
+
+    PlayerConfig config;
+    show_start_screen(gameScreen, &config);
+    nodelay(gameScreen, TRUE);
+
+    run_game_loop(gameScreen, statusArea, &my_swallow, &config);
 
     // End
     nodelay(gameScreen, FALSE);

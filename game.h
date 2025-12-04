@@ -42,18 +42,27 @@
 #define PAIR_HUNTER_CYAN 5
 #define PAIR_HUNTER_MAGENTA 6
 #define PAIR_HUNTER_BLUE 7
+
 typedef struct Stats
 {
     int score;
     int starsFumbled;
 } Stats;
 
+typedef struct PlayerConfig
+{
+    char name[30];
+    int startLevel;
+} PlayerConfig;
+
 // Pomocnicze funkcje UI
 void refresh_windows(WINDOW *windows[], int n);
 void update_status(WINDOW *statusArea, int score, int lifeForce, int seconds, int speed, int starsFumbled);
 
+void show_start_screen(WINDOW *gameScreen, PlayerConfig *config);
+
 struct Swallow;
 
-void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, struct Swallow *swallow);
+void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, struct Swallow *swallow, PlayerConfig *config);
 
 #endif
