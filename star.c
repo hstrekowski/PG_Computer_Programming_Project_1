@@ -1,9 +1,9 @@
 #include "star.h"
-#include <stdlib.h>
+#include <stdlib.h> // dla rand()
 
 void init_stars(Star stars[])
 {
-    for (int i = 0; i < MAX_STARS; i++)
+    for (int i = 0; i < MAX_STARS_LIMIT; i++)
     {
         stars[i].is_active = 0;
         stars[i].sign = "*";
@@ -14,60 +14,66 @@ void init_stars(Star stars[])
     }
 }
 
-void try_spawn_star(Star stars[], int *star_index_to_spawn, int frame_counter)
+void try_spawn_star(Star stars[], int *star_index_to_spawn, int frame_counter, int spawn_freq, int max_stars)
 {
-    const int STAR_SPAWN_FREQUENCY_FRAMES = 15;
 
-    if (frame_counter % STAR_SPAWN_FREQUENCY_FRAMES == 0 && *star_index_to_spawn < MAX_STARS)
+    // Sprawdzamy częstotliwość (z pliku poziomu)
+    if (frame_counter % spawn_freq == 0)
     {
-        Star *current_star = &stars[*star_index_to_spawn];
-        current_star->is_active = 1;
 
-        // Losowanie pozycji X
-        current_star->x = (rand() % (GAME_SCREEN_WIDTH - 2)) + 1;
-        current_star->y = 1;
+        // Sprawdzamy limity:
+        // 1. Czy nie przekroczyliśmy max liczby gwiazd dla tego poziomu
+        // 2. Czy nie przekroczyliśmy rozmiaru tablicy (bezpieczeństwo techniczne)
+        if (*star_index_to_spawn < max_stars && *star_index_to_spawn < MAX_STARS_LIMIT)
+        {
 
-        // LOSOWANIE PRĘDKOŚCI
-        // Losujemy opóźnienie od 2 (bardzo szybka) do 15 (wolna)
-        // rand() % 14 daje zakres 0-13, plus 2 daje zakres 2-15.
-        int random_speed = (rand() % 14) + 2;
+            Star *current_star = &stars[*star_index_to_spawn];
+            current_star->is_active = 1;
 
-        current_star->speed_delay = random_speed;
-        current_star->move_timer = random_speed;
+            // Losowanie pozycji X (od 1 do WIDTH-2)
+            current_star->x = (rand() % (GAME_SCREEN_WIDTH - 2)) + 1;
+            current_star->y = 1;
 
-        (*star_index_to_spawn)++;
+            // Losowanie prędkości (opóźnienia)
+            // Zakres np. 2 (szybko) do 15 (wolno)
+            int random_speed = (rand() % 14) + 2;
+            current_star->speed_delay = random_speed;
+            current_star->move_timer = random_speed;
+
+            (*star_index_to_spawn)++;
+        }
     }
 }
 
 void update_stars(WINDOW *gameScreen, Star stars[], Swallow *swallow, Stats *stats)
 {
-    for (int i = 0; i < MAX_STARS; i++)
+    // Iterujemy po wszystkich możliwych gwiazdach w tablicy
+    for (int i = 0; i < MAX_STARS_LIMIT; i++)
     {
         Star *star = &stars[i];
 
         if (star->is_active)
         {
-            // KOLIZJA Z JASKÓŁKĄ
+            // 1. KOLIZJA Z JASKÓŁKĄ
             if (star->x == swallow->x && star->y == swallow->y)
             {
                 mvwprintw(gameScreen, star->y, star->x, " ");
                 stats->score++;
                 star->is_active = 0;
             }
-
-            // RUCH GWIAZDY
+            // 2. RUCH GWIAZDY
             else if (star->move_timer <= 0)
             {
                 int prev_y = star->y;
                 star->y++;
 
-                // CZYSZCZENIE STAREJ POZYCJI
+                // Czyszczenie starej pozycji
                 if (prev_y < GAME_SCREEN_HEIGHT - 1)
                 {
                     mvwprintw(gameScreen, prev_y, star->x, " ");
                 }
 
-                // RESET TIMERA DO INDYWIDUALNEJ PRĘDKOŚCI GWIAZDY
+                // Reset timera do indywidualnej prędkości
                 star->move_timer = star->speed_delay;
             }
             else
@@ -75,14 +81,16 @@ void update_stars(WINDOW *gameScreen, Star stars[], Swallow *swallow, Stats *sta
                 star->move_timer--;
             }
 
-            // SPRAWDZANIE GRANIC I RYSOWANIE
+            // 3. SPRAWDZANIE GRANIC I RYSOWANIE
             if (star->y >= GAME_SCREEN_HEIGHT - 1)
             {
+                // Gwiazda spadła na sam dół
                 stats->starsFumbled++;
                 star->is_active = 0;
             }
             else if (star->is_active)
             {
+                // Rysowanie w nowej pozycji
                 mvwprintw(gameScreen, star->y, star->x, "%s", star->sign);
             }
         }

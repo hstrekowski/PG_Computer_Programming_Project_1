@@ -18,7 +18,9 @@ typedef struct Hunter
 } Hunter;
 
 void init_hunters(Hunter hunters[]);
-void try_spawn_hunter(Hunter hunters[], Swallow *swallow, int frame_counter);
-void update_hunters(WINDOW *gameScreen, Hunter hunters[], Swallow *swallow);
+void try_spawn_hunter(Hunter hunters[], Swallow *swallow, int frame_counter, int spawn_freq, int max_hunters, int allowed_types[5]);
+
+// ZMIANA: Dodano damage
+void update_hunters(WINDOW *gameScreen, Hunter hunters[], Swallow *swallow, int damage);
 
 #endif

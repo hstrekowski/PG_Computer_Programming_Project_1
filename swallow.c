@@ -8,6 +8,8 @@ void init_swallow(Swallow *swallow)
     swallow->sign = UP_SIGN;
     swallow->speed = 1;
     swallow->lifeForce = 3;
+    swallow->minSpeedLimit = 1;
+    swallow->maxSpeedLimit = 5;
 }
 
 int handle_input(WINDOW *gameScreen, Swallow *swallow)
@@ -43,12 +45,12 @@ int handle_input(WINDOW *gameScreen, Swallow *swallow)
         return 1;
     case 'o':
     case 'O':
-        if (swallow->speed > 1)
+        if (swallow->speed > swallow->minSpeedLimit)
             swallow->speed--;
         break;
     case 'p':
     case 'P':
-        if (swallow->speed < 5)
+        if (swallow->speed < swallow->maxSpeedLimit)
             swallow->speed++;
         break;
     }

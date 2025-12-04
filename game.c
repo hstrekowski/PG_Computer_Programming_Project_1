@@ -15,49 +15,106 @@ void refresh_windows(WINDOW *windows[], int n)
     }
 }
 
-void update_status(WINDOW *statusArea, PlayerConfig *config, int score, int lifeForce, int seconds, int speed, int starsFumbled)
+void update_status(WINDOW *statusArea, PlayerConfig *config, LevelConfig *lvlConfig, int score, int lifeForce, int seconds, int speed, int starsFumbled)
 {
     werase(statusArea);
     box(statusArea, 0, 0);
 
-    // Wiersz 1: Nick i Level
     mvwprintw(statusArea, 1, 2, "PLAYER: %s", config->name);
-    mvwprintw(statusArea, 1, 40, "LEVEL: %d", config->startLevel);
+    mvwprintw(statusArea, 1, 40, "LEVEL: %d", lvlConfig->levelNumber);
 
-    // Wiersz 2: Główne statystyki (Score, Lives, Time)
-    mvwprintw(statusArea, 2, 2, "SCORE: %d", score);
+    // ZMIANA: Wyświetlamy STARS: Aktualne / Cel
+    // Jeśli cel osiągnięty, wyświetlamy na zielono (używamy PAIR_HUNTER_GREEN bo to zielony)
+    if (score >= lvlConfig->starGoal)
+    {
+        wattron(statusArea, COLOR_PAIR(PAIR_HUNTER_GREEN));
+        mvwprintw(statusArea, 2, 2, "STARS: %d / %d (GOAL REACHED!)", score, lvlConfig->starGoal);
+        wattroff(statusArea, COLOR_PAIR(PAIR_HUNTER_GREEN));
+    }
+    else
+    {
+        mvwprintw(statusArea, 2, 2, "STARS: %d / %d", score, lvlConfig->starGoal);
+    }
 
-    // Kolorowanie żyć dla lepszej widoczności
     wattron(statusArea, COLOR_PAIR(lifeForce <= 1 ? PAIR_RED : (lifeForce == 2 ? PAIR_ORANGE : PAIR_WHITE)));
     mvwprintw(statusArea, 2, 40, "LIVES: %d", lifeForce);
     wattroff(statusArea, COLOR_PAIR(lifeForce <= 1 ? PAIR_RED : (lifeForce == 2 ? PAIR_ORANGE : PAIR_WHITE)));
 
     mvwprintw(statusArea, 2, 70, "TIME: %d s", seconds);
 
-    // Wiersz 3: Dodatkowe statystyki
     mvwprintw(statusArea, 3, 2, "FUMBLED: %d", starsFumbled);
     mvwprintw(statusArea, 3, 40, "SPEED: %d", speed);
 
-    // --- SEKCJA 2: LINIA PODZIAŁU (Wiersz 4) ---
-    mvwhline(statusArea, 4, 1, 0, STATUS_AREA_WIDTH - 2); // Rysuje poziomą linię
+    mvwhline(statusArea, 4, 1, 0, STATUS_AREA_WIDTH - 2);
 
-    // --- SEKCJA 3: STEROWANIE (Wiersze 5-7) ---
     mvwprintw(statusArea, 5, 2, "[ CONTROLS ]");
-
-    // Ruch
     mvwprintw(statusArea, 5, 20, "W / S - Move Up/Down");
     mvwprintw(statusArea, 5, 55, "A / D - Move Left/Right");
-
-    // Akcje
     mvwprintw(statusArea, 6, 20, "O - Decrease Speed");
     mvwprintw(statusArea, 6, 55, "P - Increase Speed");
-
-    // Wyjście (wyróżnione kolorem czerwonym)
     wattron(statusArea, COLOR_PAIR(PAIR_RED));
     mvwprintw(statusArea, 6, 90, "Q - QUIT GAME");
     wattroff(statusArea, COLOR_PAIR(PAIR_RED));
 
     wrefresh(statusArea);
+}
+
+int load_level_config(int level, LevelConfig *lvlConfig)
+{
+    char filename[50];
+    sprintf(filename, "level%d.txt", level);
+
+    FILE *file = fopen(filename, "r");
+    if (file == NULL)
+        return 0;
+
+    // Wartości domyślne
+    lvlConfig->levelNumber = level;
+    lvlConfig->durationSeconds = 60;
+    lvlConfig->maxStars = 50;
+    lvlConfig->maxHunters = 5;
+    lvlConfig->starFreq = 15;
+    lvlConfig->hunterFreq = 100;
+    lvlConfig->hunterDamage = 1;
+    lvlConfig->minSpeed = 1;
+    lvlConfig->maxSpeed = 5;
+    lvlConfig->starGoal = 10; // Domyślny cel
+    for (int i = 0; i < 5; i++)
+        lvlConfig->allowedHunterTypes[i] = 1;
+
+    char key[50];
+    while (fscanf(file, "%s", key) != EOF)
+    {
+        if (strcmp(key, "DURATION") == 0)
+            fscanf(file, "%d", &lvlConfig->durationSeconds);
+        else if (strcmp(key, "MAX_STARS") == 0)
+            fscanf(file, "%d", &lvlConfig->maxStars);
+        else if (strcmp(key, "MAX_HUNTERS") == 0)
+            fscanf(file, "%d", &lvlConfig->maxHunters);
+        else if (strcmp(key, "STAR_FREQ") == 0)
+            fscanf(file, "%d", &lvlConfig->starFreq);
+        else if (strcmp(key, "HUNTER_FREQ") == 0)
+            fscanf(file, "%d", &lvlConfig->hunterFreq);
+        else if (strcmp(key, "HUNTER_DAMAGE") == 0)
+            fscanf(file, "%d", &lvlConfig->hunterDamage);
+
+        // NOWE: Czytanie celu
+        else if (strcmp(key, "STAR_GOAL") == 0)
+            fscanf(file, "%d", &lvlConfig->starGoal);
+
+        else if (strcmp(key, "SPEED_LIMITS") == 0)
+        {
+            fscanf(file, "%d %d", &lvlConfig->minSpeed, &lvlConfig->maxSpeed);
+        }
+        else if (strcmp(key, "HUNTER_TYPES") == 0)
+        {
+            for (int i = 0; i < 5; i++)
+                fscanf(file, "%d", &lvlConfig->allowedHunterTypes[i]);
+        }
+    }
+
+    fclose(file);
+    return 1;
 }
 
 // NOWE: Funkcja ekranu startowego
@@ -110,22 +167,40 @@ void show_start_screen(WINDOW *gameScreen, PlayerConfig *config)
 
 void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, PlayerConfig *config)
 {
-    Stats stats = {0, 0};
+    LevelConfig lvlConfig;
+    int success = load_level_config(config->startLevel, &lvlConfig);
 
-    int total_frames = DURATION_SECONDS * FRAME_RATE;
+    if (!success)
+    {
+        wclear(gameScreen);
+        box(gameScreen, 0, 0);
+        mvwprintw(gameScreen, GAME_SCREEN_HEIGHT / 2, 10, "ERROR: Could not load level%d.txt!", config->startLevel);
+        wrefresh(gameScreen);
+        return;
+    }
+
+    // ZMIANA: Przypisanie limitów prędkości do jaskółki
+    swallow->minSpeedLimit = lvlConfig.minSpeed;
+    swallow->maxSpeedLimit = lvlConfig.maxSpeed;
+    // Upewniamy się, że aktualna prędkość jest w zakresie
+    if (swallow->speed < swallow->minSpeedLimit)
+        swallow->speed = swallow->minSpeedLimit;
+    if (swallow->speed > swallow->maxSpeedLimit)
+        swallow->speed = swallow->maxSpeedLimit;
+
+    Stats stats = {0, 0};
+    int total_frames = lvlConfig.durationSeconds * FRAME_RATE;
     int frame_counter = 0;
     const int SLEEP_TIME_US = 1000000 / FRAME_RATE;
-
     int move_counter = BASE_MOVE_RATE;
     int star_index_to_spawn = 0;
 
     srand(time(NULL));
 
-    // INICJALIZACJA
-    Star stars[MAX_STARS];
+    Star stars[MAX_STARS_LIMIT];
     init_stars(stars);
 
-    Hunter hunters[MAX_HUNTERS];
+    Hunter hunters[MAX_HUNTERS_LIMIT];
     init_hunters(hunters);
 
     wattron(gameScreen, COLOR_PAIR(PAIR_WHITE));
@@ -133,9 +208,8 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, Pla
     wattroff(gameScreen, COLOR_PAIR(PAIR_WHITE));
     wrefresh(gameScreen);
 
-    update_status(statusArea, config, stats.score, swallow->lifeForce, total_frames / FRAME_RATE, swallow->speed, stats.starsFumbled);
+    update_status(statusArea, config, &lvlConfig, stats.score, swallow->lifeForce, total_frames / FRAME_RATE, swallow->speed, stats.starsFumbled);
 
-    // --- GŁÓWNA PĘTLA GRY ---
     while (total_frames > 0)
     {
         int should_quit = handle_input(gameScreen, swallow);
@@ -144,18 +218,17 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, Pla
 
         update_swallow_position(gameScreen, swallow, &move_counter);
 
-        try_spawn_star(stars, &star_index_to_spawn, frame_counter);
+        try_spawn_star(stars, &star_index_to_spawn, frame_counter, lvlConfig.starFreq, lvlConfig.maxStars);
         update_stars(gameScreen, stars, swallow, &stats);
 
-        try_spawn_hunter(hunters, swallow, frame_counter);
-        update_hunters(gameScreen, hunters, swallow);
+        // ZMIANA: Przekazanie allowedHunterTypes oraz hunterDamage
+        try_spawn_hunter(hunters, swallow, frame_counter, lvlConfig.hunterFreq, lvlConfig.maxHunters, lvlConfig.allowedHunterTypes);
+        update_hunters(gameScreen, hunters, swallow, lvlConfig.hunterDamage);
 
         if (swallow->lifeForce <= 0)
-        {
             break;
-        }
 
-        update_status(statusArea, config, stats.score, swallow->lifeForce, total_frames / FRAME_RATE, swallow->speed, stats.starsFumbled);
+        update_status(statusArea, config, &lvlConfig, stats.score, swallow->lifeForce, total_frames / FRAME_RATE, swallow->speed, stats.starsFumbled);
 
         wrefresh(gameScreen);
         usleep(SLEEP_TIME_US);
@@ -164,23 +237,31 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, Pla
         move_counter--;
     }
 
-    // --- GAME OVER SCREEN ---
-
-    // 1. Wyczyść okno gry
     wclear(gameScreen);
-    box(gameScreen, 0, 0); // Opcjonalnie: Rysujemy ramkę ponownie, żeby wyglądało estetycznie
+    box(gameScreen, 0, 0);
 
-    const char *msg_game_over = "GAME OVER";
-    char msg_stats[100];
+    char msg_result[50];
+    if (swallow->lifeForce > 0 && stats.score >= lvlConfig.starGoal)
+    {
+        strcpy(msg_result, "LEVEL COMPLETED!");
+    }
+    else if (swallow->lifeForce <= 0)
+    {
+        strcpy(msg_result, "GAME OVER - You Died!");
+    }
+    else
+    {
+        strcpy(msg_result, "GAME OVER - Time's Up!");
+    }
+
+    char msg_stats[150];
     int final_lives = swallow->lifeForce < 0 ? 0 : swallow->lifeForce;
-
-    sprintf(msg_stats, "Player: %s  |  Score: %d  |  Lives: %d", config->name, stats.score, final_lives);
+    sprintf(msg_stats, "Player: %s | Stars: %d/%d | Lives: %d", config->name, stats.score, lvlConfig.starGoal, final_lives);
 
     int center_y = GAME_SCREEN_HEIGHT / 2;
     int center_x = GAME_SCREEN_WIDTH / 2;
 
-    mvwprintw(gameScreen, center_y - 1, center_x - (strlen(msg_game_over) / 2), "%s", msg_game_over);
-    mvwprintw(gameScreen, center_y + 1, center_x - (strlen(msg_stats) / 2), "%s", msg_stats);
-
+    mvwprintw(gameScreen, center_y - 2, center_x - (strlen(msg_result) / 2), "%s", msg_result);
+    mvwprintw(gameScreen, center_y, center_x - (strlen(msg_stats) / 2), "%s", msg_stats);
     wrefresh(gameScreen);
 }

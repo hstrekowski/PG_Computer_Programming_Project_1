@@ -11,6 +11,8 @@ typedef struct Swallow
     int direction;
     int lifeForce;
     char *sign;
+    int minSpeedLimit;
+    int maxSpeedLimit;
 } Swallow;
 
 void init_swallow(Swallow *swallow);
