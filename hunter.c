@@ -1,6 +1,6 @@
 #include "hunter.h"
 #include <stdlib.h>
-#include <math.h> // Potrzebne do pierwiastka (sqrt)
+#include <math.h>
 
 void init_hunters(Hunter hunters[])
 {
@@ -39,22 +39,27 @@ void try_spawn_hunter(Hunter hunters[], Swallow *swallow, int frame_counter)
     case 0:
         h->width = 1;
         h->height = 2;
+        h->color_pair = PAIR_HUNTER_GREEN;
         break;
     case 1:
         h->width = 2;
         h->height = 1;
+        h->color_pair = PAIR_HUNTER_CYAN;
         break;
     case 2:
         h->width = 1;
         h->height = 3;
+        h->color_pair = PAIR_HUNTER_MAGENTA;
         break;
     case 3:
         h->width = 3;
         h->height = 1;
+        h->color_pair = PAIR_HUNTER_BLUE;
         break;
     case 4:
         h->width = 2;
         h->height = 2;
+        h->color_pair = PAIR_RED;
         break;
     }
 
@@ -199,6 +204,9 @@ void update_hunters(WINDOW *gameScreen, Hunter hunters[], Swallow *swallow)
         // --- RYSOWANIE ---
         if (!hit && h->is_active)
         {
+            // Włączamy kolor przypisany do huntera
+            wattron(gameScreen, COLOR_PAIR(h->color_pair));
+
             for (int ry = 0; ry < h->height; ry++)
             {
                 for (int rx = 0; rx < h->width; rx++)
@@ -208,6 +216,9 @@ void update_hunters(WINDOW *gameScreen, Hunter hunters[], Swallow *swallow)
                     mvwprintw(gameScreen, draw_y, draw_x, "%d", h->bounces_left);
                 }
             }
+
+            // Wyłączamy kolor
+            wattroff(gameScreen, COLOR_PAIR(h->color_pair));
         }
     }
 }

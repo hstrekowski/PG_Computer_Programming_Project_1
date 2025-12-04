@@ -6,14 +6,15 @@
 
 typedef struct Hunter
 {
-    float x; // Pozycja dokładna (float)
+    float x;
     float y;
-    float dx;         // Wektor ruchu X
-    float dy;         // Wektor ruchu Y
-    int width;        // Szerokość (1, 2 lub 3)
-    int height;       // Wysokość (1, 2 lub 3)
-    int bounces_left; // Liczba odbić (1-3)
+    float dx;
+    float dy;
+    int width;
+    int height;
+    int bounces_left;
     int is_active;
+    int color_pair;
 } Hunter;
 
 void init_hunters(Hunter hunters[]);

@@ -32,9 +32,16 @@
 #define BASE_MOVE_RATE 10
 #define MAX_HUNTERS 10
 
+// Swallow colors ID
 #define PAIR_WHITE 1
 #define PAIR_ORANGE 2
 #define PAIR_RED 3
+
+// Hunter colors ID
+#define PAIR_HUNTER_GREEN 4
+#define PAIR_HUNTER_CYAN 5
+#define PAIR_HUNTER_MAGENTA 6
+#define PAIR_HUNTER_BLUE 7
 typedef struct Stats
 {
     int score;
