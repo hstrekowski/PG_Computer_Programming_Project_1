@@ -11,303 +11,196 @@ void init_hunters(Hunter hunters[])
     }
 }
 
-void try_spawn_hunter(Hunter hunters[], Swallow *swallow, int frame_counter, int total_frames, int spawn_freq, int max_hunters, int allowed_types[5])
+int get_dynamic_limit(int max, int current_frame, int total)
 {
-    if (frame_counter % spawn_freq != 0)
-        return;
+    int rem = total - current_frame;
+    int limit = max;
+    if (rem <= total / 4)
+        limit += 2;
+    else if (rem <= total / 2)
+        limit += 1;
+    return (limit > MAX_HUNTERS_LIMIT) ? MAX_HUNTERS_LIMIT : limit;
+}
 
-    int dynamic_max_hunters = max_hunters;
-    int remaining_frames = total_frames - frame_counter;
-
-    if (remaining_frames <= total_frames / 4)
-    {
-        // Ostatnia ćwiartka czasu: limit + 2
-        dynamic_max_hunters += 2;
-    }
-    else if (remaining_frames <= total_frames / 2)
-    {
-        // Druga połowa czasu: limit + 1
-        dynamic_max_hunters += 1;
-    }
-
-    if (dynamic_max_hunters > MAX_HUNTERS_LIMIT)
-    {
-        dynamic_max_hunters = MAX_HUNTERS_LIMIT;
-    }
-
-    int any_allowed = 0;
-    for (int i = 0; i < 5; i++)
-        if (allowed_types[i])
-            any_allowed = 1;
-    if (!any_allowed)
-        return;
-
-    int active_count = 0;
-    int slot = -1;
-    for (int i = 0; i < MAX_HUNTERS_LIMIT; i++)
-    {
-        if (hunters[i].is_active)
-            active_count++;
-        else if (slot == -1)
-            slot = i;
-    }
-
-    if (active_count >= dynamic_max_hunters || slot == -1)
-        return;
-
-    Hunter *h = &hunters[slot];
+void setup_hunter_props(Hunter *h, int *allowed)
+{
     h->is_active = 1;
     h->has_dashed = 0;
-
-    int shape_type;
+    int type;
     do
     {
-        shape_type = rand() % 5;
-    } while (allowed_types[shape_type] == 0);
+        type = rand() % 5;
+    } while (allowed[type] == 0);
 
-    switch (shape_type)
+    int w[] = {1, 2, 1, 3, 2};
+    int he[] = {2, 1, 3, 1, 2};
+    int cols[] = {PAIR_HUNTER_GREEN, PAIR_HUNTER_CYAN, PAIR_HUNTER_MAGENTA, PAIR_HUNTER_BLUE, PAIR_RED};
+
+    h->width = w[type];
+    h->height = he[type];
+    h->color_pair = cols[type];
+}
+
+void spawn_vectors(Hunter *h, Swallow *s)
+{
+    float tx = (float)s->x, ty = (float)s->y;
+    float dx = tx - h->x, dy = ty - h->y;
+    float len = sqrt(dx * dx + dy * dy);
+    float spd = 0.5f;
+    if (len != 0)
     {
-    case 0:
-        h->width = 1;
-        h->height = 2;
-        h->color_pair = PAIR_HUNTER_GREEN;
-        break;
-    case 1:
-        h->width = 2;
-        h->height = 1;
-        h->color_pair = PAIR_HUNTER_CYAN;
-        break;
-    case 2:
-        h->width = 1;
-        h->height = 3;
-        h->color_pair = PAIR_HUNTER_MAGENTA;
-        break;
-    case 3:
-        h->width = 3;
-        h->height = 1;
-        h->color_pair = PAIR_HUNTER_BLUE;
-        break;
-    case 4:
-        h->width = 2;
-        h->height = 2;
-        h->color_pair = PAIR_RED;
-        break;
-    }
-
-    // --- NOWA LOGIKA ODBIĆ ---
-    int min_bounces = 1; // Domyślnie 1-3
-
-    if (remaining_frames <= total_frames / 4)
-    {
-        // Mniej niż 1/4 czasu (końcówka): 3-5 odbić
-        min_bounces = 3;
-    }
-    else if (remaining_frames <= total_frames / 2)
-    {
-        // Mniej niż 1/2 czasu: 2-4 odbić
-        min_bounces = 2;
-    }
-
-    // Losujemy z zakresu o szerokości 3 (np. 1-3, 2-4, 3-5)
-    // rand() % 3 daje 0,1,2. Dodajemy min_bounces.
-    h->bounces_left = (rand() % 3) + min_bounces;
-
-    // --- Reszta (pozycja i wektor) bez zmian ---
-    int corner = rand() % 4;
-    switch (corner)
-    {
-    case 0:
-        h->x = 2;
-        h->y = 2;
-        break;
-    case 1:
-        h->x = GAME_SCREEN_WIDTH - 3;
-        h->y = 2;
-        break;
-    case 2:
-        h->x = 2;
-        h->y = GAME_SCREEN_HEIGHT - 3;
-        break;
-    case 3:
-        h->x = GAME_SCREEN_WIDTH - 3;
-        h->y = GAME_SCREEN_HEIGHT - 3;
-        break;
-    }
-
-    float target_x = (float)swallow->x;
-    float target_y = (float)swallow->y;
-    float diff_x = target_x - h->x;
-    float diff_y = target_y - h->y;
-    float length = sqrt(diff_x * diff_x + diff_y * diff_y);
-    float speed = 0.5f;
-
-    if (length != 0)
-    {
-        h->dx = (diff_x / length) * speed;
-        h->dy = (diff_y / length) * speed;
+        h->dx = (dx / len) * spd;
+        h->dy = (dy / len) * spd;
     }
     else
     {
-        h->dx = speed;
-        h->dy = speed;
+        h->dx = spd;
+        h->dy = spd;
     }
 }
 
-void update_hunters(WINDOW *gameScreen, Hunter hunters[], Swallow *swallow, int damage, SafeZone *safeZone)
+void try_spawn_hunter(Hunter hunters[], Swallow *s, int fc, int tf, int freq, int max, int allowed[5])
+{
+    if (fc % freq != 0)
+        return;
+    int limit = get_dynamic_limit(max, fc, tf);
+
+    int act = 0, slot = -1;
+    for (int i = 0; i < MAX_HUNTERS_LIMIT; i++)
+    {
+        if (hunters[i].is_active)
+            act++;
+        else if (slot == -1)
+            slot = i;
+    }
+    if (act >= limit || slot == -1)
+        return;
+
+    Hunter *h = &hunters[slot];
+    setup_hunter_props(h, allowed);
+
+    int rem = tf - fc;
+    int min_b = (rem <= tf / 4) ? 3 : ((rem <= tf / 2) ? 2 : 1);
+    h->bounces_left = (rand() % 3) + min_b;
+
+    int c = rand() % 4;
+    h->x = (c % 2 == 0) ? 2 : GAME_SCREEN_WIDTH - 3;
+    h->y = (c < 2) ? 2 : GAME_SCREEN_HEIGHT - 3;
+    spawn_vectors(h, s);
+}
+
+void handle_dash(Hunter *h, Swallow *s, int hx, int hy)
+{
+    if (h->has_dashed)
+    {
+        if (hx)
+            h->dx = -h->dx;
+        if (hy)
+            h->dy = -h->dy;
+        return;
+    }
+    float pdx = hx ? -h->dx : h->dx;
+    float pdy = hy ? -h->dy : h->dy;
+
+    float tx = s->x - h->x, ty = s->y - h->y;
+    float dist = sqrt(tx * tx + ty * ty);
+    int dash = 0;
+
+    if (dist > 0)
+    {
+        float plen = sqrt(pdx * pdx + pdy * pdy);
+        float dot = (pdx / plen * tx / dist) + (pdy / plen * ty / dist);
+        if (dot < 0.99)
+            dash = 1;
+    }
+
+    if (dash)
+    {
+        h->dx = (tx / dist) * 1.5f;
+        h->dy = (ty / dist) * 1.5f;
+        h->has_dashed = 1;
+    }
+    else
+    {
+        h->dx = pdx;
+        h->dy = pdy;
+    }
+}
+
+void draw_hunter(WINDOW *win, Hunter *h)
+{
+    wattron(win, COLOR_PAIR(h->color_pair));
+    for (int ry = 0; ry < h->height; ry++)
+    {
+        for (int rx = 0; rx < h->width; rx++)
+        {
+            mvwprintw(win, (int)h->y + ry, (int)h->x + rx, "%d", h->bounces_left);
+        }
+    }
+    wattroff(win, COLOR_PAIR(h->color_pair));
+}
+
+void update_single_hunter(WINDOW *win, Hunter *h, Swallow *s, int dmg, SafeZone *sz)
+{
+    for (int ry = 0; ry < h->height; ry++)
+        for (int rx = 0; rx < h->width; rx++)
+            mvwprintw(win, (int)h->y + ry, (int)h->x + rx, " ");
+
+    h->x += h->dx;
+    h->y += h->dy;
+
+    int hx = (h->x <= 1) || (h->x + h->width >= GAME_SCREEN_WIDTH - 1);
+    int hy = (h->y <= 1) || (h->y + h->height >= GAME_SCREEN_HEIGHT - 1);
+
+    if (hx)
+        h->x = (h->x <= 1) ? 1.1f : GAME_SCREEN_WIDTH - 1 - h->width - 0.1f;
+    if (hy)
+        h->y = (h->y <= 1) ? 1.1f : GAME_SCREEN_HEIGHT - 1 - h->height - 0.1f;
+
+    if (hx || hy)
+    {
+        handle_dash(h, s, hx, hy);
+        if (--h->bounces_left == 0)
+        {
+            h->is_active = 0;
+            return;
+        }
+    }
+
+    if (sz->is_active)
+    {
+        // Safe zone logic: pass through or die?
+        // User said: "hunterzy znikaja jak uderza w safe zone"
+        int zr = 1;
+        int zl = sz->x - zr, zr_ = sz->x + zr;
+        int zt = sz->y - zr, zb = sz->y + zr;
+        if ((int)h->x <= zr_ && (int)h->x + h->width >= zl &&
+            (int)h->y <= zb && (int)h->y + h->height >= zt)
+        {
+            h->is_active = 0;
+            return;
+        }
+    }
+
+    int hit = (s->x >= (int)h->x && s->x < (int)h->x + h->width &&
+               s->y >= (int)h->y && s->y < (int)h->y + h->height);
+
+    if (hit && !sz->is_active)
+    {
+        if (s->lifeForce > 0)
+            s->lifeForce -= dmg;
+        h->is_active = 0;
+        return;
+    }
+
+    draw_hunter(win, h);
+}
+
+void update_hunters(WINDOW *win, Hunter hunters[], Swallow *s, int dmg, SafeZone *sz)
 {
     for (int i = 0; i < MAX_HUNTERS_LIMIT; i++)
     {
-        Hunter *h = &hunters[i];
-        if (!h->is_active)
-            continue;
-
-        // Czyszczenie
-        for (int ry = 0; ry < h->height; ry++)
-        {
-            for (int rx = 0; rx < h->width; rx++)
-            {
-                int draw_y = (int)h->y + ry;
-                int draw_x = (int)h->x + rx;
-                if (draw_y > 0 && draw_y < GAME_SCREEN_HEIGHT - 1 && draw_x > 0 && draw_x < GAME_SCREEN_WIDTH - 1)
-                    mvwprintw(gameScreen, draw_y, draw_x, " ");
-            }
-        }
-        h->x += h->dx;
-        h->y += h->dy;
-
-        // ... (Logika odbić i dasha BEZ ZMIAN - skopiuj z poprzednich wersji) ...
-        int bounced = 0;
-        int hit_horizontal = 0;
-        int hit_vertical = 0;
-        if (h->x <= 1)
-        {
-            h->x = 1.1f;
-            hit_horizontal = 1;
-            bounced = 1;
-        }
-        else if (h->x + h->width >= GAME_SCREEN_WIDTH - 1)
-        {
-            h->x = GAME_SCREEN_WIDTH - 1 - h->width - 0.1f;
-            hit_horizontal = 1;
-            bounced = 1;
-        }
-        if (h->y <= 1)
-        {
-            h->y = 1.1f;
-            hit_vertical = 1;
-            bounced = 1;
-        }
-        else if (h->y + h->height >= GAME_SCREEN_HEIGHT - 1)
-        {
-            h->y = GAME_SCREEN_HEIGHT - 1 - h->height - 0.1f;
-            hit_vertical = 1;
-            bounced = 1;
-        }
-        if (bounced)
-        {
-            if (!h->has_dashed)
-            {
-                float potential_dx = h->dx;
-                float potential_dy = h->dy;
-                if (hit_horizontal)
-                    potential_dx = -potential_dx;
-                if (hit_vertical)
-                    potential_dy = -potential_dy;
-                float to_swallow_x = (float)swallow->x - h->x;
-                float to_swallow_y = (float)swallow->y - h->y;
-                float dist = sqrt(to_swallow_x * to_swallow_x + to_swallow_y * to_swallow_y);
-                int should_dash = 0;
-                if (dist > 0)
-                {
-                    float potential_len = sqrt(potential_dx * potential_dx + potential_dy * potential_dy);
-                    float norm_pot_x = potential_dx / potential_len;
-                    float norm_pot_y = potential_dy / potential_len;
-                    float norm_swallow_x = to_swallow_x / dist;
-                    float norm_swallow_y = to_swallow_y / dist;
-                    float dot_product = (norm_pot_x * norm_swallow_x) + (norm_pot_y * norm_swallow_y);
-                    if (dot_product < 0.99)
-                        should_dash = 1;
-                }
-                if (should_dash)
-                {
-                    float dash_speed = 1.5f;
-                    h->dx = (to_swallow_x / dist) * dash_speed;
-                    h->dy = (to_swallow_y / dist) * dash_speed;
-                    h->has_dashed = 1;
-                }
-                else
-                {
-                    h->dx = potential_dx;
-                    h->dy = potential_dy;
-                }
-            }
-            else
-            {
-                if (hit_horizontal)
-                    h->dx = -h->dx;
-                if (hit_vertical)
-                    h->dy = -h->dy;
-            }
-            h->bounces_left--;
-            if (h->bounces_left == 0)
-            {
-                h->is_active = 0;
-                continue;
-            }
-        }
-        // ---------------------------------------------------------------
-
-        // --- PRZYWRÓCONA LOGIKA: KOLIZJA Z SAFE ZONE ---
-        if (safeZone->is_active)
-        {
-            // Promień 1 oznacza kwadrat 3x3 (środek +/- 1)
-            int zone_radius = 1;
-
-            int zone_left = safeZone->x - zone_radius;
-            int zone_right = safeZone->x + zone_radius;
-            int zone_top = safeZone->y - zone_radius;
-            int zone_bottom = safeZone->y + zone_radius;
-
-            int hunter_left = (int)h->x;
-            int hunter_right = (int)h->x + h->width;
-            int hunter_top = (int)h->y;
-            int hunter_bottom = (int)h->y + h->height;
-
-            if (hunter_left <= zone_right && hunter_right >= zone_left &&
-                hunter_top <= zone_bottom && hunter_bottom >= zone_top)
-            {
-
-                h->is_active = 0; // Hunter znika po uderzeniu w strefę!
-                continue;
-            }
-        }
-        // -----------------------------------------------
-
-        int hit = 0;
-        int sx = swallow->x;
-        int sy = swallow->y;
-        if (sx >= (int)h->x && sx < (int)h->x + h->width && sy >= (int)h->y && sy < (int)h->y + h->height)
-        {
-            if (!safeZone->is_active)
-            {
-                if (swallow->lifeForce > 0)
-                    swallow->lifeForce -= damage;
-                h->is_active = 0;
-                hit = 1;
-            }
-        }
-
-        if (!hit && h->is_active)
-        {
-            wattron(gameScreen, COLOR_PAIR(h->color_pair));
-            for (int ry = 0; ry < h->height; ry++)
-            {
-                for (int rx = 0; rx < h->width; rx++)
-                {
-                    mvwprintw(gameScreen, (int)h->y + ry, (int)h->x + rx, "%d", h->bounces_left);
-                }
-            }
-            wattroff(gameScreen, COLOR_PAIR(h->color_pair));
-        }
+        if (hunters[i].is_active)
+            update_single_hunter(win, &hunters[i], s, dmg, sz);
     }
 }

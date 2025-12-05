@@ -6,22 +6,21 @@
 
 typedef struct Hunter
 {
-    float x;
-    float y;
-    float dx;
-    float dy;
-    int width;
-    int height;
+    float x, y, dx, dy;
+    int width, height;
     int bounces_left;
     int is_active;
     int color_pair;
     int has_dashed;
 } Hunter;
 
+// Zerowanie tablicy hunterów
 void init_hunters(Hunter hunters[]);
-void try_spawn_hunter(Hunter hunters[], Swallow *swallow, int frame_counter, int total_frames, int spawn_freq, int max_hunters, int allowed_types[5]);
 
-// ZMIANA: Dodano damage
-void update_hunters(WINDOW *gameScreen, Hunter hunters[], Swallow *swallow, int damage, SafeZone *safeZone);
+// Próba zespawnowania huntera (jeśli czas i limity pozwalają)
+void try_spawn_hunter(Hunter hunters[], Swallow *s, int fc, int tf, int freq, int max, int allowed[5]);
+
+// Aktualizacja pozycji i logiki wszystkich hunterów
+void update_hunters(WINDOW *win, Hunter hunters[], Swallow *s, int dmg, SafeZone *sz);
 
 #endif

@@ -1,6 +1,8 @@
 #include <ncurses.h>
 #include "game.h"
 #include "swallow.h"
+#include "render.h"
+#include "config.h"
 
 int main()
 {
