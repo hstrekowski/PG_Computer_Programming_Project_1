@@ -72,17 +72,61 @@ void draw_status(WINDOW *win, PlayerConfig *p, LevelConfig *l, Stats *s, int liv
     wrefresh(win);
 }
 
-void draw_game_over(WINDOW *win, PlayerConfig *p, Stats *s, int lives, int goal, int won)
+void draw_leaderboard(WINDOW *win, ScoreEntry top[], int count, char *current_player, int current_score)
+{
+    int cx = GAME_SCREEN_WIDTH / 2;
+    int cy = GAME_SCREEN_HEIGHT / 2;
+
+    mvwprintw(win, cy + 2, cx - 10, "--- TOP %d SCORES ---", TOP_N);
+    for (int i = 0; i < count; i++)
+    {
+        // Podświetl aktualnego gracza jeśli to jego wynik
+        if (strcmp(top[i].name, current_player) == 0 && top[i].score == current_score)
+        {
+            wattron(win, COLOR_PAIR(PAIR_HUNTER_GREEN));
+        }
+        mvwprintw(win, cy + 4 + i, cx - 15, "%d. %-15s LVL %d : %d", i + 1, top[i].name, top[i].level, top[i].score);
+        if (strcmp(top[i].name, current_player) == 0 && top[i].score == current_score)
+        {
+            wattroff(win, COLOR_PAIR(PAIR_HUNTER_GREEN));
+        }
+    }
+}
+
+void draw_game_over(WINDOW *win, PlayerConfig *p, int final_score, int won, ScoreEntry top[], int count, int quit)
 {
     wclear(win);
     box(win, 0, 0);
-    char *res = won ? "LEVEL COMPLETED!" : (lives <= 0 ? "GAME OVER - Died!" : "GAME OVER - Time!");
-    char stats[150];
-    sprintf(stats, "Player: %s | Stars: %d/%d | Lives: %d", p->name, s->score, goal, lives < 0 ? 0 : lives);
 
-    int cy = GAME_SCREEN_HEIGHT / 2;
+    char *res;
+    if (won)
+        res = "LEVEL COMPLETED!";
+    else if (quit)
+        res = "GAME ABORTED (Q)";
+    else
+        res = "GAME OVER";
+
     int cx = GAME_SCREEN_WIDTH / 2;
-    mvwprintw(win, cy - 2, cx - (strlen(res) / 2), "%s", res);
-    mvwprintw(win, cy, cx - (strlen(stats) / 2), "%s", stats);
+    int cy = GAME_SCREEN_HEIGHT / 2;
+
+    wattron(win, won ? COLOR_PAIR(PAIR_HUNTER_GREEN) : COLOR_PAIR(PAIR_RED));
+    mvwprintw(win, cy - 4, cx - (strlen(res) / 2), "%s", res);
+    wattroff(win, won ? COLOR_PAIR(PAIR_HUNTER_GREEN) : COLOR_PAIR(PAIR_RED));
+
+    // Rysujemy wynik i tabelę TYLKO jeśli wygrał
+    if (won)
+    {
+        char score_msg[50];
+        sprintf(score_msg, "FINAL SCORE: %d", final_score);
+        mvwprintw(win, cy - 2, cx - (strlen(score_msg) / 2), "%s", score_msg);
+        draw_leaderboard(win, top, count, p->name, final_score);
+    }
+    else
+    {
+        // Komunikat dla przegranych
+        char *fail_msg = "Mission Failed. No score recorded.";
+        mvwprintw(win, cy, cx - (strlen(fail_msg) / 2), "%s", fail_msg);
+    }
+
     wrefresh(win);
 }

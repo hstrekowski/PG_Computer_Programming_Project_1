@@ -26,6 +26,7 @@
 #define MAX_HUNTERS_LIMIT 50
 #define FRAME_RATE 45
 #define BASE_MOVE_RATE 10
+#define TOP_N 5 //
 
 // Kolory
 #define PAIR_WHITE 1
@@ -72,6 +73,13 @@ typedef struct SafeZone
     int cooldown_timer;
     int game_start_timer;
 } SafeZone;
+
+typedef struct ScoreEntry
+{
+    char name[30];
+    int score;
+    int level;
+} ScoreEntry;
 
 // Forward declaration
 struct Swallow;

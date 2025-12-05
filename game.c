@@ -4,6 +4,7 @@
 #include "hunter.h"
 #include "config.h"
 #include "safe_zone.h"
+#include "highscore.h"
 #include "render.h"
 #include <unistd.h>
 #include <stdlib.h>
@@ -117,15 +118,31 @@ void process_logic(GameState *g, Swallow *s, WINDOW *win)
 
 void process_render(WINDOW *win, WINDOW *stat, GameState *g, Swallow *s, PlayerConfig *p)
 {
+    box(win, 0, 0);
     draw_safe_zone(win, &g->sz);
     draw_status(stat, p, &g->lvl, &g->stats, s->lifeForce, g->frames / FRAME_RATE, s->speed, &g->sz);
     wrefresh(win);
 }
 
-void handle_game_over(WINDOW *win, GameState *g, Swallow *s, PlayerConfig *p)
+void handle_game_over(WINDOW *win, GameState *g, Swallow *s, PlayerConfig *p, int quit)
 {
-    int won = (s->lifeForce > 0 && g->stats.score >= g->lvl.starGoal);
-    draw_game_over(win, p, &g->stats, s->lifeForce, g->lvl.starGoal, won);
+    // Warunek wygranej: Żyje, zebrał gwiazdki i NIE wyszedł sam
+    int won = (s->lifeForce > 0 && g->stats.score >= g->lvl.starGoal && !quit);
+
+    int final_score = 0;
+    ScoreEntry top[TOP_N];
+    int count = 0;
+
+    // Obliczamy i zapisujemy wynik TYLKO jeśli wygrał
+    if (won)
+    {
+        final_score = calculate_final_score(&g->stats, s->lifeForce, g->frames, g->lvl.levelNumber);
+        save_score(p->name, final_score, g->lvl.levelNumber);
+        count = load_top_scores(top, TOP_N);
+    }
+
+    // Przekazujemy flagę quit do renderowania
+    draw_game_over(win, p, final_score, won, top, count, quit);
 }
 
 void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, PlayerConfig *config)
@@ -135,14 +152,26 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, Pla
         return;
 
     const int SLEEP = 1000000 / FRAME_RATE;
-
     draw_status(statusArea, config, &g.lvl, &g.stats, swallow->lifeForce, g.frames / FRAME_RATE, swallow->speed, &g.sz);
+
+    int user_quit = 0;
 
     while (g.frames > 0 && swallow->lifeForce > 0)
     {
         if (process_input(gameScreen, swallow, &g))
+        {
+            user_quit = 1; // Gracz nacisnął Q
             break;
+        }
+
         process_logic(&g, swallow, gameScreen);
+
+        // ZMIANA: Sprawdzamy Instant Win po każdej klatce logiki
+        if (g.stats.score >= g.lvl.starGoal)
+        {
+            break; // Wygrana! Wychodzimy z pętli od razu
+        }
+
         process_render(gameScreen, statusArea, &g, swallow, config);
         usleep(SLEEP);
         g.frames--;
@@ -150,5 +179,5 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, Pla
         g.move_ctr--;
     }
 
-    handle_game_over(gameScreen, &g, swallow, config);
+    handle_game_over(gameScreen, &g, swallow, config, user_quit);
 }
