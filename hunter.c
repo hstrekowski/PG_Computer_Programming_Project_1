@@ -7,6 +7,7 @@ void init_hunters(Hunter hunters[])
     for (int i = 0; i < MAX_HUNTERS_LIMIT; i++)
     {
         hunters[i].is_active = 0;
+        hunters[i].has_dashed = 0;
     }
 }
 
@@ -56,6 +57,7 @@ void try_spawn_hunter(Hunter hunters[], Swallow *swallow, int frame_counter, int
 
     Hunter *h = &hunters[slot];
     h->is_active = 1;
+    h->has_dashed = 0;
 
     int shape_type;
     do
@@ -159,6 +161,7 @@ void update_hunters(WINDOW *gameScreen, Hunter hunters[], Swallow *swallow, int 
         if (!h->is_active)
             continue;
 
+        // Czyszczenie starej pozycji
         for (int ry = 0; ry < h->height; ry++)
         {
             for (int rx = 0; rx < h->width; rx++)
@@ -169,37 +172,115 @@ void update_hunters(WINDOW *gameScreen, Hunter hunters[], Swallow *swallow, int 
                     mvwprintw(gameScreen, draw_y, draw_x, " ");
             }
         }
+
+        // Ruch
         h->x += h->dx;
         h->y += h->dy;
 
+        // --- ZMODYFIKOWANA LOGIKA ODBIĆ I DASHA ---
         int bounced = 0;
+        int hit_horizontal = 0;
+        int hit_vertical = 0;
+
+        // Wykrycie kolizji ze ścianą
         if (h->x <= 1)
         {
             h->x = 1.1f;
-            h->dx = -h->dx;
+            hit_horizontal = 1;
             bounced = 1;
         }
         else if (h->x + h->width >= GAME_SCREEN_WIDTH - 1)
         {
             h->x = GAME_SCREEN_WIDTH - 1 - h->width - 0.1f;
-            h->dx = -h->dx;
+            hit_horizontal = 1;
             bounced = 1;
         }
+
         if (h->y <= 1)
         {
             h->y = 1.1f;
-            h->dy = -h->dy;
+            hit_vertical = 1;
             bounced = 1;
         }
         else if (h->y + h->height >= GAME_SCREEN_HEIGHT - 1)
         {
             h->y = GAME_SCREEN_HEIGHT - 1 - h->height - 0.1f;
-            h->dy = -h->dy;
+            hit_vertical = 1;
             bounced = 1;
         }
 
         if (bounced)
         {
+            // Sprawdzamy czy możemy dashować (tylko raz!)
+            if (!h->has_dashed)
+            {
+
+                // 1. Obliczamy wektor "teoretycznego" normalnego odbicia
+                float potential_dx = h->dx;
+                float potential_dy = h->dy;
+
+                if (hit_horizontal)
+                    potential_dx = -potential_dx;
+                if (hit_vertical)
+                    potential_dy = -potential_dy;
+
+                // 2. Obliczamy wektor do Swallow
+                float to_swallow_x = (float)swallow->x - h->x;
+                float to_swallow_y = (float)swallow->y - h->y;
+                float dist = sqrt(to_swallow_x * to_swallow_x + to_swallow_y * to_swallow_y);
+
+                int should_dash = 0;
+
+                if (dist > 0)
+                {
+                    // Normalizacja wektorów
+                    float potential_len = sqrt(potential_dx * potential_dx + potential_dy * potential_dy);
+                    float norm_pot_x = potential_dx / potential_len;
+                    float norm_pot_y = potential_dy / potential_len;
+
+                    float norm_swallow_x = to_swallow_x / dist;
+                    float norm_swallow_y = to_swallow_y / dist;
+
+                    // Iloczyn skalarny (Dot Product)
+                    // Wynik 1.0 = idealnie w cel, 0.0 = kąt prosty, -1.0 = w drugą stronę
+                    float dot_product = (norm_pot_x * norm_swallow_x) + (norm_pot_y * norm_swallow_y);
+
+                    // Jeśli kąt jest zbyt duży (np. dot_product < 0.95), uznajemy to za pudło
+                    if (dot_product < 0.99)
+                    {
+                        should_dash = 1;
+                    }
+                }
+
+                if (should_dash)
+                {
+                    // WYKONAJ DASH: Ustaw wektor prosto na jaskółkę z większą prędkością
+                    float dash_speed = 1.0f; // Szybciej niż zwykle (0.5)
+                    h->dx = (to_swallow_x / dist) * dash_speed;
+                    h->dy = (to_swallow_y / dist) * dash_speed;
+
+                    // Oznaczamy, że dash został zużyty
+                    h->has_dashed = 1;
+                }
+                else
+                {
+                    // Jeśli odbicie trafia, odbijamy normalnie
+                    h->dx = potential_dx;
+                    h->dy = potential_dy;
+                    // UWAGA: Możesz odkomentować poniższe, jeśli "trafione odbicie" też ma zużywać szansę na dash
+                    // h->has_dashed = 1;
+                }
+            }
+            else
+            {
+                // Już dashował kiedyś, więc odbija się normalnie
+                if (hit_horizontal)
+                    h->dx = -h->dx;
+                if (hit_vertical)
+                    h->dy = -h->dy;
+            }
+
+            // Logika odejmowania żyć huntera (odbić)
             h->bounces_left--;
             if (h->bounces_left == 0)
             {
@@ -208,17 +289,14 @@ void update_hunters(WINDOW *gameScreen, Hunter hunters[], Swallow *swallow, int 
             }
         }
 
+        // --- Reszta (Kolizja i Rysowanie) BEZ ZMIAN ---
         int hit = 0;
         int sx = swallow->x;
         int sy = swallow->y;
         if (sx >= (int)h->x && sx < (int)h->x + h->width && sy >= (int)h->y && sy < (int)h->y + h->height)
         {
-
-            // ZMIANA: Odejmujemy tyle, ile zdefiniowano w damage
             if (swallow->lifeForce > 0)
-            {
                 swallow->lifeForce -= damage;
-            }
             h->is_active = 0;
             hit = 1;
         }

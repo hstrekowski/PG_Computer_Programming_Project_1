@@ -15,6 +15,7 @@ typedef struct Hunter
     int bounces_left;
     int is_active;
     int color_pair;
+    int has_dashed;
 } Hunter;
 
 void init_hunters(Hunter hunters[]);
