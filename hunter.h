@@ -12,6 +12,7 @@ typedef struct Hunter
     int is_active;
     int color_pair;
     int has_dashed;
+    int dash_wait_timer;
 } Hunter;
 
 // Zerowanie tablicy hunterów

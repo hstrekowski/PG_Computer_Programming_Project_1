@@ -8,6 +8,7 @@ void init_hunters(Hunter hunters[])
     {
         hunters[i].is_active = 0;
         hunters[i].has_dashed = 0;
+        hunters[i].dash_wait_timer = 0;
     }
 }
 
@@ -26,16 +27,15 @@ void setup_hunter_props(Hunter *h, int *allowed)
 {
     h->is_active = 1;
     h->has_dashed = 0;
+    h->dash_wait_timer = 0;
     int type;
     do
     {
         type = rand() % 5;
     } while (allowed[type] == 0);
-
     int w[] = {1, 2, 1, 3, 2};
     int he[] = {2, 1, 3, 1, 2};
     int cols[] = {PAIR_HUNTER_GREEN, PAIR_HUNTER_CYAN, PAIR_HUNTER_MAGENTA, PAIR_HUNTER_BLUE, PAIR_RED};
-
     h->width = w[type];
     h->height = he[type];
     h->color_pair = cols[type];
@@ -64,7 +64,6 @@ void try_spawn_hunter(Hunter hunters[], Swallow *s, int fc, int tf, int freq, in
     if (fc % freq != 0)
         return;
     int limit = get_dynamic_limit(max, fc, tf);
-
     int act = 0, slot = -1;
     for (int i = 0; i < MAX_HUNTERS_LIMIT; i++)
     {
@@ -75,21 +74,33 @@ void try_spawn_hunter(Hunter hunters[], Swallow *s, int fc, int tf, int freq, in
     }
     if (act >= limit || slot == -1)
         return;
-
     Hunter *h = &hunters[slot];
     setup_hunter_props(h, allowed);
-
     int rem = tf - fc;
     int min_b = (rem <= tf / 4) ? 3 : ((rem <= tf / 2) ? 2 : 1);
     h->bounces_left = (rand() % 3) + min_b;
-
     int c = rand() % 4;
     h->x = (c % 2 == 0) ? 2 : GAME_SCREEN_WIDTH - 3;
     h->y = (c < 2) ? 2 : GAME_SCREEN_HEIGHT - 3;
     spawn_vectors(h, s);
 }
 
-void handle_dash(Hunter *h, Swallow *s, int hx, int hy)
+void execute_dash_launch(Hunter *h, Swallow *s)
+{
+    float tx = s->x - h->x;
+    float ty = s->y - h->y;
+    float dist = sqrt(tx * tx + ty * ty);
+
+    float dash_speed = 1.5f;
+    if (dist > 0)
+    {
+        h->dx = (tx / dist) * dash_speed;
+        h->dy = (ty / dist) * dash_speed;
+    }
+    h->has_dashed = 1;
+}
+
+void check_bounce_logic(Hunter *h, Swallow *s, int hx, int hy)
 {
     if (h->has_dashed)
     {
@@ -101,24 +112,21 @@ void handle_dash(Hunter *h, Swallow *s, int hx, int hy)
     }
     float pdx = hx ? -h->dx : h->dx;
     float pdy = hy ? -h->dy : h->dy;
-
     float tx = s->x - h->x, ty = s->y - h->y;
     float dist = sqrt(tx * tx + ty * ty);
-    int dash = 0;
+    int need_dash = 0;
 
     if (dist > 0)
     {
         float plen = sqrt(pdx * pdx + pdy * pdy);
         float dot = (pdx / plen * tx / dist) + (pdy / plen * ty / dist);
         if (dot < 0.99)
-            dash = 1;
+            need_dash = 1;
     }
 
-    if (dash)
+    if (need_dash)
     {
-        h->dx = (tx / dist) * 1.5f;
-        h->dy = (ty / dist) * 1.5f;
-        h->has_dashed = 1;
+        h->dash_wait_timer = 22;
     }
     else
     {
@@ -142,13 +150,26 @@ void draw_hunter(WINDOW *win, Hunter *h)
 
 void update_single_hunter(WINDOW *win, Hunter *h, Swallow *s, int dmg, SafeZone *sz)
 {
+    if (h->dash_wait_timer > 0)
+    {
+        h->dash_wait_timer--;
+        if (h->dash_wait_timer == 0)
+        {
+            execute_dash_launch(h, s);
+        }
+        draw_hunter(win, h);
+        return;
+    }
+
     for (int ry = 0; ry < h->height; ry++)
         for (int rx = 0; rx < h->width; rx++)
             mvwprintw(win, (int)h->y + ry, (int)h->x + rx, " ");
 
+    // Ruch
     h->x += h->dx;
     h->y += h->dy;
 
+    // Sprawdzanie ścian
     int hx = (h->x <= 1) || (h->x + h->width >= GAME_SCREEN_WIDTH - 1);
     int hy = (h->y <= 1) || (h->y + h->height >= GAME_SCREEN_HEIGHT - 1);
 
@@ -159,7 +180,7 @@ void update_single_hunter(WINDOW *win, Hunter *h, Swallow *s, int dmg, SafeZone 
 
     if (hx || hy)
     {
-        handle_dash(h, s, hx, hy);
+        check_bounce_logic(h, s, hx, hy);
         if (--h->bounces_left == 0)
         {
             h->is_active = 0;
@@ -167,10 +188,9 @@ void update_single_hunter(WINDOW *win, Hunter *h, Swallow *s, int dmg, SafeZone 
         }
     }
 
+    // Safe Zone Collision
     if (sz->is_active)
     {
-        // Safe zone logic: pass through or die?
-        // User said: "hunterzy znikaja jak uderza w safe zone"
         int zr = 1;
         int zl = sz->x - zr, zr_ = sz->x + zr;
         int zt = sz->y - zr, zb = sz->y + zr;
@@ -182,6 +202,7 @@ void update_single_hunter(WINDOW *win, Hunter *h, Swallow *s, int dmg, SafeZone 
         }
     }
 
+    // Player Collision
     int hit = (s->x >= (int)h->x && s->x < (int)h->x + h->width &&
                s->y >= (int)h->y && s->y < (int)h->y + h->height);
 
@@ -196,6 +217,7 @@ void update_single_hunter(WINDOW *win, Hunter *h, Swallow *s, int dmg, SafeZone 
     draw_hunter(win, h);
 }
 
+// ... (update_hunters BEZ ZMIAN - skopiuj z poprzedniej wersji) ...
 void update_hunters(WINDOW *win, Hunter hunters[], Swallow *s, int dmg, SafeZone *sz)
 {
     for (int i = 0; i < MAX_HUNTERS_LIMIT; i++)

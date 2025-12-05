@@ -166,18 +166,12 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, Pla
 
         process_logic(&g, swallow, gameScreen);
 
-        // --- POPRAWKA TUTAJ ---
         if (g.stats.score >= g.lvl.starGoal)
         {
-            // Wymuszamy ostatnie rysowanie, żeby pokazać 10/10 i zielony kolor
             process_render(gameScreen, statusArea, &g, swallow, config);
-
-            // Opcjonalnie: Mała pauza (pół sekundy), żeby gracz zdążył zobaczyć sukces
             usleep(500000);
-
-            break; // Wyjście z pętli
+            break;
         }
-        // ---------------------
 
         process_render(gameScreen, statusArea, &g, swallow, config);
         usleep(SLEEP);
