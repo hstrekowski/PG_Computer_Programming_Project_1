@@ -19,12 +19,9 @@ void update_status(WINDOW *statusArea, PlayerConfig *config, LevelConfig *lvlCon
 {
     werase(statusArea);
     box(statusArea, 0, 0);
-
     mvwprintw(statusArea, 1, 2, "PLAYER: %s", config->name);
     mvwprintw(statusArea, 1, 40, "LEVEL: %d", lvlConfig->levelNumber);
 
-    // ZMIANA: Wyświetlamy STARS: Aktualne / Cel
-    // Jeśli cel osiągnięty, wyświetlamy na zielono (używamy PAIR_HUNTER_GREEN bo to zielony)
     if (score >= lvlConfig->starGoal)
     {
         wattron(statusArea, COLOR_PAIR(PAIR_HUNTER_GREEN));
@@ -39,23 +36,19 @@ void update_status(WINDOW *statusArea, PlayerConfig *config, LevelConfig *lvlCon
     wattron(statusArea, COLOR_PAIR(lifeForce <= 1 ? PAIR_RED : (lifeForce == 2 ? PAIR_ORANGE : PAIR_WHITE)));
     mvwprintw(statusArea, 2, 40, "LIVES: %d", lifeForce);
     wattroff(statusArea, COLOR_PAIR(lifeForce <= 1 ? PAIR_RED : (lifeForce == 2 ? PAIR_ORANGE : PAIR_WHITE)));
-
     mvwprintw(statusArea, 2, 70, "TIME: %d s", seconds);
-
     mvwprintw(statusArea, 3, 2, "FUMBLED: %d", starsFumbled);
     mvwprintw(statusArea, 3, 40, "SPEED: %d", speed);
-
     mvwhline(statusArea, 4, 1, 0, STATUS_AREA_WIDTH - 2);
 
     mvwprintw(statusArea, 5, 2, "[ CONTROLS ]");
-    mvwprintw(statusArea, 5, 20, "W / S - Move Up/Down");
-    mvwprintw(statusArea, 5, 55, "A / D - Move Left/Right");
-    mvwprintw(statusArea, 6, 20, "O - Decrease Speed");
-    mvwprintw(statusArea, 6, 55, "P - Increase Speed");
+    mvwprintw(statusArea, 5, 20, "W / S / A / D - Move");
+    mvwprintw(statusArea, 5, 55, "T - SAFE ZONE (Teleport)"); // Info dla gracza
+
+    mvwprintw(statusArea, 6, 20, "O / P - Speed Control");
     wattron(statusArea, COLOR_PAIR(PAIR_RED));
     mvwprintw(statusArea, 6, 90, "Q - QUIT GAME");
     wattroff(statusArea, COLOR_PAIR(PAIR_RED));
-
     wrefresh(statusArea);
 }
 
@@ -169,7 +162,6 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, Pla
 {
     LevelConfig lvlConfig;
     int success = load_level_config(config->startLevel, &lvlConfig);
-
     if (!success)
     {
         wclear(gameScreen);
@@ -179,22 +171,28 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, Pla
         return;
     }
 
-    // ZMIANA: Przypisanie limitów prędkości do jaskółki
     swallow->minSpeedLimit = lvlConfig.minSpeed;
     swallow->maxSpeedLimit = lvlConfig.maxSpeed;
-    // Upewniamy się, że aktualna prędkość jest w zakresie
     if (swallow->speed < swallow->minSpeedLimit)
         swallow->speed = swallow->minSpeedLimit;
     if (swallow->speed > swallow->maxSpeedLimit)
         swallow->speed = swallow->maxSpeedLimit;
 
     Stats stats = {0, 0};
-    int total_frames = lvlConfig.durationSeconds * FRAME_RATE;
-    const int INITIAL_TOTAL_FRAMES = total_frames;
+    int frames_left = lvlConfig.durationSeconds * FRAME_RATE;
+    const int INITIAL_TOTAL_FRAMES = frames_left;
     int frame_counter = 0;
     const int SLEEP_TIME_US = 1000000 / FRAME_RATE;
     int move_counter = BASE_MOVE_RATE;
     int star_index_to_spawn = 0;
+
+    SafeZone safeZone;
+    safeZone.is_active = 0;
+    safeZone.x = GAME_SCREEN_WIDTH / 2;
+    safeZone.y = GAME_SCREEN_HEIGHT - 6;
+    safeZone.duration_timer = 0;
+    safeZone.cooldown_timer = 0;
+    safeZone.game_start_timer = 0;
 
     srand(time(NULL));
 
@@ -209,59 +207,184 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, Pla
     wattroff(gameScreen, COLOR_PAIR(PAIR_WHITE));
     wrefresh(gameScreen);
 
-    update_status(statusArea, config, &lvlConfig, stats.score, swallow->lifeForce, total_frames / FRAME_RATE, swallow->speed, stats.starsFumbled);
+    update_status(statusArea, config, &lvlConfig, stats.score, swallow->lifeForce, frames_left / FRAME_RATE, swallow->speed, stats.starsFumbled);
 
-    while (total_frames > 0)
+    while (frames_left > 0)
     {
-        int should_quit = handle_input(gameScreen, swallow);
-        if (should_quit)
-            break;
+        // --- OBSŁUGA KLAWISZY ---
+        int ch = wgetch(gameScreen);
 
-        update_swallow_position(gameScreen, swallow, &move_counter);
+        // 1. Sprawdzamy aktywację 'T'
+        if ((ch == 't' || ch == 'T'))
+        {
+            if (safeZone.game_start_timer > 5 * FRAME_RATE && safeZone.cooldown_timer <= 0)
+            {
+                safeZone.is_active = 1;
+                safeZone.duration_timer = 5 * FRAME_RATE;
+                safeZone.cooldown_timer = 30 * FRAME_RATE;
+
+                // Czyścimy starą pozycję przed teleportem
+                mvwprintw(gameScreen, swallow->y, swallow->x, " ");
+
+                // Teleportacja
+                swallow->x = safeZone.x;
+                swallow->y = safeZone.y;
+                swallow->direction = UP;
+                swallow->sign = "^";
+            }
+        }
+        // 2. Obsługa reszty klawiszy (tylko jeśli NIE jesteśmy w Safe Zone)
+        else if (ch != ERR)
+        {
+            if (!safeZone.is_active)
+            {
+                // Pozwalamy sterować tylko gdy strefa NIEAKTYWNA
+                ungetch(ch);
+                int should_quit = handle_input(gameScreen, swallow);
+                if (should_quit)
+                    break;
+            }
+            else
+            {
+                // Jeśli strefa aktywna, pozwalamy TYLKO na wyjście 'Q'
+                if (ch == 'q' || ch == 'Q')
+                    break;
+            }
+        }
+
+        // --- WAŻNE: LOGIKA RUCHU I STREFY ---
+        if (safeZone.is_active)
+        {
+            // SZTYWNE UWIĘZIENIE
+            // Nadpisujemy pozycję na środek strefy w każdej klatce
+            swallow->x = safeZone.x;
+            swallow->y = safeZone.y;
+
+            // RĘCZNE RYSOWANIE JASKÓŁKI (bo update_swallow_position jest wyłączone)
+            // Najpierw czyścimy to miejsce (na wypadek artefaktów), potem rysujemy
+            // (Chociaż przy stałej pozycji nie trzeba czyścić, ale dla pewności)
+
+            wattron(gameScreen, COLOR_PAIR(PAIR_ORANGE));
+            mvwprintw(gameScreen, swallow->y, swallow->x, "%s", swallow->sign);
+            wattroff(gameScreen, COLOR_PAIR(PAIR_ORANGE));
+
+            // UWAGA: NIE wywołujemy update_swallow_position!
+        }
+        else
+        {
+            // NORMALNY RUCH (tylko gdy strefa nieaktywna)
+            update_swallow_position(gameScreen, swallow, &move_counter);
+        }
+        // ----------------------------------------
 
         try_spawn_star(stars, &star_index_to_spawn, frame_counter, lvlConfig.starFreq, lvlConfig.maxStars);
         update_stars(gameScreen, stars, swallow, &stats);
 
-        // ZMIANA: Przekazanie allowedHunterTypes oraz hunterDamage
         try_spawn_hunter(hunters, swallow, frame_counter, INITIAL_TOTAL_FRAMES, lvlConfig.hunterFreq, lvlConfig.maxHunters, lvlConfig.allowedHunterTypes);
-        update_hunters(gameScreen, hunters, swallow, lvlConfig.hunterDamage);
+        update_hunters(gameScreen, hunters, swallow, lvlConfig.hunterDamage, &safeZone);
+
+        // --- Rysowanie RAMKI strefy ---
+        // --- Rysowanie RAMKI strefy ---
+        if (safeZone.is_active)
+        {
+            safeZone.duration_timer--;
+
+            // JEŚLI CZAS SIĘ SKOŃCZYŁ:
+            if (safeZone.duration_timer <= 0)
+            {
+                safeZone.is_active = 0;
+
+                // --- POPRAWKA: Czyścimy ramkę (zamazujemy spacjami) ---
+                int radius = 1;
+                for (int dy = -radius; dy <= radius; dy++)
+                {
+                    for (int dx = -radius; dx <= radius; dx++)
+                    {
+                        if (abs(dx) == radius || abs(dy) == radius)
+                        {
+                            mvwprintw(gameScreen, safeZone.y + dy, safeZone.x + dx, " ");
+                        }
+                    }
+                }
+                // -----------------------------------------------------
+            }
+            else
+            {
+                // JEŚLI NADAL AKTYWNA: Rysujemy ramkę
+                int radius = 1;
+                wattron(gameScreen, COLOR_PAIR(PAIR_ORANGE));
+                for (int dy = -radius; dy <= radius; dy++)
+                {
+                    for (int dx = -radius; dx <= radius; dx++)
+                    {
+                        if (abs(dx) == radius || abs(dy) == radius)
+                        {
+                            int d_y = safeZone.y + dy;
+                            int d_x = safeZone.x + dx;
+                            // Sprawdzamy granice, żeby nie rysować po ramce okna
+                            if (d_y > 0 && d_y < GAME_SCREEN_HEIGHT - 1 && d_x > 0 && d_x < GAME_SCREEN_WIDTH - 1)
+                                mvwprintw(gameScreen, d_y, d_x, "O");
+                        }
+                    }
+                }
+                wattroff(gameScreen, COLOR_PAIR(PAIR_ORANGE));
+            }
+        }
+
+        safeZone.game_start_timer++;
+        if (safeZone.cooldown_timer > 0)
+            safeZone.cooldown_timer--;
 
         if (swallow->lifeForce <= 0)
             break;
 
-        update_status(statusArea, config, &lvlConfig, stats.score, swallow->lifeForce, total_frames / FRAME_RATE, swallow->speed, stats.starsFumbled);
+        update_status(statusArea, config, &lvlConfig, stats.score, swallow->lifeForce, frames_left / FRAME_RATE, swallow->speed, stats.starsFumbled);
+
+        // Status Safe Zone
+        if (safeZone.is_active)
+        {
+            wattron(statusArea, COLOR_PAIR(PAIR_HUNTER_BLUE));
+            mvwprintw(statusArea, 5, 85, "ZONE: ACTIVE %ds ", (safeZone.duration_timer / FRAME_RATE) + 1);
+            wattroff(statusArea, COLOR_PAIR(PAIR_HUNTER_BLUE));
+        }
+        else if (safeZone.cooldown_timer > 0)
+        {
+            mvwprintw(statusArea, 5, 85, "ZONE: WAIT %ds  ", (safeZone.cooldown_timer / FRAME_RATE) + 1);
+        }
+        else if (safeZone.game_start_timer > 5 * FRAME_RATE)
+        {
+            wattron(statusArea, COLOR_PAIR(PAIR_HUNTER_GREEN));
+            mvwprintw(statusArea, 5, 85, "ZONE: READY!    ");
+            wattroff(statusArea, COLOR_PAIR(PAIR_HUNTER_GREEN));
+        }
+        else
+        {
+            mvwprintw(statusArea, 5, 85, "ZONE: LOCKED    ");
+        }
+        wrefresh(statusArea);
 
         wrefresh(gameScreen);
         usleep(SLEEP_TIME_US);
-        total_frames--;
+        frames_left--;
         frame_counter++;
         move_counter--;
     }
 
+    // GAME OVER SCREEN (Bez zmian)
     wclear(gameScreen);
     box(gameScreen, 0, 0);
-
     char msg_result[50];
     if (swallow->lifeForce > 0 && stats.score >= lvlConfig.starGoal)
-    {
         strcpy(msg_result, "LEVEL COMPLETED!");
-    }
     else if (swallow->lifeForce <= 0)
-    {
         strcpy(msg_result, "GAME OVER - You Died!");
-    }
     else
-    {
         strcpy(msg_result, "GAME OVER - Time's Up!");
-    }
-
     char msg_stats[150];
     int final_lives = swallow->lifeForce < 0 ? 0 : swallow->lifeForce;
     sprintf(msg_stats, "Player: %s | Stars: %d/%d | Lives: %d", config->name, stats.score, lvlConfig.starGoal, final_lives);
-
     int center_y = GAME_SCREEN_HEIGHT / 2;
     int center_x = GAME_SCREEN_WIDTH / 2;
-
     mvwprintw(gameScreen, center_y - 2, center_x - (strlen(msg_result) / 2), "%s", msg_result);
     mvwprintw(gameScreen, center_y, center_x - (strlen(msg_stats) / 2), "%s", msg_stats);
     wrefresh(gameScreen);

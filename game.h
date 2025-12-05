@@ -65,6 +65,15 @@ typedef struct LevelConfig
     int starGoal;
 } LevelConfig;
 
+typedef struct SafeZone
+{
+    int is_active;        // 1 = włączona, 0 = wyłączona
+    int x, y;             // Środek strefy (pozycja startowa jaskółki)
+    int duration_timer;   // Ile czasu strefa jest widoczna (np. 5 sekund)
+    int cooldown_timer;   // Odliczanie do ponownego użycia (30 sekund)
+    int game_start_timer; // Licznik od początku gry (do blokady 5s)
+} SafeZone;
+
 // Forward declaration dla Swallow (bo swallow.h dołącza game.h)
 struct Swallow;
 
