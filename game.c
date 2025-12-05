@@ -160,17 +160,24 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, Pla
     {
         if (process_input(gameScreen, swallow, &g))
         {
-            user_quit = 1; // Gracz nacisnął Q
+            user_quit = 1;
             break;
         }
 
         process_logic(&g, swallow, gameScreen);
 
-        // ZMIANA: Sprawdzamy Instant Win po każdej klatce logiki
+        // --- POPRAWKA TUTAJ ---
         if (g.stats.score >= g.lvl.starGoal)
         {
-            break; // Wygrana! Wychodzimy z pętli od razu
+            // Wymuszamy ostatnie rysowanie, żeby pokazać 10/10 i zielony kolor
+            process_render(gameScreen, statusArea, &g, swallow, config);
+
+            // Opcjonalnie: Mała pauza (pół sekundy), żeby gracz zdążył zobaczyć sukces
+            usleep(500000);
+
+            break; // Wyjście z pętli
         }
+        // ---------------------
 
         process_render(gameScreen, statusArea, &g, swallow, config);
         usleep(SLEEP);
