@@ -15,6 +15,25 @@ void try_spawn_hunter(Hunter hunters[], Swallow *swallow, int frame_counter, int
     if (frame_counter % spawn_freq != 0)
         return;
 
+    int dynamic_max_hunters = max_hunters;
+    int remaining_frames = total_frames - frame_counter;
+
+    if (remaining_frames <= total_frames / 4)
+    {
+        // Ostatnia ćwiartka czasu: limit + 2
+        dynamic_max_hunters += 2;
+    }
+    else if (remaining_frames <= total_frames / 2)
+    {
+        // Druga połowa czasu: limit + 1
+        dynamic_max_hunters += 1;
+    }
+
+    if (dynamic_max_hunters > MAX_HUNTERS_LIMIT)
+    {
+        dynamic_max_hunters = MAX_HUNTERS_LIMIT;
+    }
+
     int any_allowed = 0;
     for (int i = 0; i < 5; i++)
         if (allowed_types[i])
@@ -32,7 +51,7 @@ void try_spawn_hunter(Hunter hunters[], Swallow *swallow, int frame_counter, int
             slot = i;
     }
 
-    if (active_count >= max_hunters || slot == -1)
+    if (active_count >= dynamic_max_hunters || slot == -1)
         return;
 
     Hunter *h = &hunters[slot];
@@ -74,7 +93,6 @@ void try_spawn_hunter(Hunter hunters[], Swallow *swallow, int frame_counter, int
     }
 
     // --- NOWA LOGIKA ODBIĆ ---
-    int remaining_frames = total_frames - frame_counter;
     int min_bounces = 1; // Domyślnie 1-3
 
     if (remaining_frames <= total_frames / 4)
