@@ -10,18 +10,17 @@ void init_hunters(Hunter hunters[])
     }
 }
 
-void try_spawn_hunter(Hunter hunters[], Swallow *swallow, int frame_counter, int spawn_freq, int max_hunters, int allowed_types[5])
+void try_spawn_hunter(Hunter hunters[], Swallow *swallow, int frame_counter, int total_frames, int spawn_freq, int max_hunters, int allowed_types[5])
 {
     if (frame_counter % spawn_freq != 0)
         return;
 
-    // Sprawdź czy jakikolwiek typ jest dozwolony, żeby uniknąć nieskończonej pętli
     int any_allowed = 0;
     for (int i = 0; i < 5; i++)
         if (allowed_types[i])
             any_allowed = 1;
     if (!any_allowed)
-        return; // Jeśli konfiguracja zabrania wszystkich, nie spawnuj
+        return;
 
     int active_count = 0;
     int slot = -1;
@@ -39,7 +38,6 @@ void try_spawn_hunter(Hunter hunters[], Swallow *swallow, int frame_counter, int
     Hunter *h = &hunters[slot];
     h->is_active = 1;
 
-    // Losujemy typ dopóki nie trafimy na dozwolony
     int shape_type;
     do
     {
@@ -75,7 +73,26 @@ void try_spawn_hunter(Hunter hunters[], Swallow *swallow, int frame_counter, int
         break;
     }
 
-    h->bounces_left = (rand() % 3) + 1;
+    // --- NOWA LOGIKA ODBIĆ ---
+    int remaining_frames = total_frames - frame_counter;
+    int min_bounces = 1; // Domyślnie 1-3
+
+    if (remaining_frames <= total_frames / 4)
+    {
+        // Mniej niż 1/4 czasu (końcówka): 3-5 odbić
+        min_bounces = 3;
+    }
+    else if (remaining_frames <= total_frames / 2)
+    {
+        // Mniej niż 1/2 czasu: 2-4 odbić
+        min_bounces = 2;
+    }
+
+    // Losujemy z zakresu o szerokości 3 (np. 1-3, 2-4, 3-5)
+    // rand() % 3 daje 0,1,2. Dodajemy min_bounces.
+    h->bounces_left = (rand() % 3) + min_bounces;
+
+    // --- Reszta (pozycja i wektor) bez zmian ---
     int corner = rand() % 4;
     switch (corner)
     {

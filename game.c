@@ -190,6 +190,7 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, Pla
 
     Stats stats = {0, 0};
     int total_frames = lvlConfig.durationSeconds * FRAME_RATE;
+    const int INITIAL_TOTAL_FRAMES = total_frames;
     int frame_counter = 0;
     const int SLEEP_TIME_US = 1000000 / FRAME_RATE;
     int move_counter = BASE_MOVE_RATE;
@@ -222,7 +223,7 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, Pla
         update_stars(gameScreen, stars, swallow, &stats);
 
         // ZMIANA: Przekazanie allowedHunterTypes oraz hunterDamage
-        try_spawn_hunter(hunters, swallow, frame_counter, lvlConfig.hunterFreq, lvlConfig.maxHunters, lvlConfig.allowedHunterTypes);
+        try_spawn_hunter(hunters, swallow, frame_counter, INITIAL_TOTAL_FRAMES, lvlConfig.hunterFreq, lvlConfig.maxHunters, lvlConfig.allowedHunterTypes);
         update_hunters(gameScreen, hunters, swallow, lvlConfig.hunterDamage);
 
         if (swallow->lifeForce <= 0)
