@@ -2,88 +2,75 @@
 
 > **A high-performance, retro arcade survival game running entirely in the terminal.**
 >
-> Built with **C** and **Ncurses**. Featuring vector-based physics, a custom replay system, and modular architecture.
+> Built with **C** and **Ncurses**. Featuring vector-based physics, a custom memory-based replay system, and modular clean code architecture.
 
 ![Swallow Stars Banner](path/to/your/banner_image.png)
 ---
 
 ## 📖 About The Project
 
-**Swallow Stars** to zaawansowany projekt gry zręcznościowej napisany w czystym języku C. Gra łączy klasyczną mechanikę "unikania i zbierania" z nowoczesnymi rozwiązaniami architektonicznymi.
+**Swallow Stars** is an advanced arcade game project developed in pure C. It combines classic "dodge and collect" mechanics with modern software engineering practices.
 
-Projekt został stworzony z myślą o **Czystym Kodzie (Clean Code)**. Nie znajdziesz tu "magicznych liczb" ani gigantycznych funkcji. Kod jest ściśle zmodularyzowany, oddzielając logikę biznesową od warstwy prezentacji (renderingu) oraz zarządzania pamięcią.
+The project was engineered with a focus on **Clean Code principles**. You won't find "magic numbers" or monolithic functions here. The codebase is strictly modular, separating business logic from the presentation layer (rendering) and memory management.
 
 ### Key Highlights:
-* **Instant Replay System:** Cały stan gry jest nagrywany do RAM w każdej klatce. Po przegranej możesz obejrzeć dokładną powtórkę swojej rozgrywki.
-* **Tactical Safe Zone:** Mechanika "Blink & Reset" pozwalająca na strategiczne wycofanie się z trudnej sytuacji.
-* **Physics-Based Enemies:** Przeciwnicy używają wektorów do poruszania się i odbijania od ścian.
+* **Instant Replay System:** The entire game state is recorded to RAM every frame. Upon defeat, you can watch a frame-by-frame replay of your gameplay.
+* **Tactical Safe Zone:** A "Blink & Reset" mechanic allowing for strategic withdrawal from impossible situations.
+* **Physics-Based Enemies:** Hunters use vector math for movement and wall bouncing logic.
 
 ---
 
-## 📸 Gallery
-
-| Main Menu | Gameplay Action |
-|:---:|:---:|
-| ![Menu Screen](path/to/menu_screenshot.png) | ![Gameplay Screen](path/to/gameplay_screenshot.png) |
-| *Konfigurowalny start gry* | *Walka o przetrwanie* |
-
-| Replay Mode | Game Over & Stats |
-|:---:|:---:|
-| ![Replay Screen](path/to/replay_screenshot.png) | ![Scoreboard Screen](path/to/scoreboard_screenshot.png) |
-| *Odtwarzanie powtórki* | *Hall of Fame* |
-
----
 
 ## 🚀 Features & Mechanics
 
 ### 🌟 Aging Stars
-Gwiazdy to nie tylko punkty. Zmieniają one swoje zachowanie i wygląd w zależności od pozycji na ekranie:
-* **Normal (White):** Standardowy stan.
-* **Warning (Orange):** Gwiazda zbliża się do dołu ekranu.
-* **Critical (Red):** Gwiazda zaraz zniknie, co liczy się jako błąd (Fumble).
+Stars are dynamic entities, not just static points. They change behavior and appearance based on their vertical position:
+* **Normal (White):** Standard state.
+* **Warning (Orange):** The star is approaching the danger zone.
+* **Critical (Red):** The star is about to vanish (counting as a Fumble).
 
 ### 🛡️ Safe Zone (The "Blink")
-Pod klawiszem `T` kryje się potężna umiejętność. Po naładowaniu paska (stan "READY"):
-1.  Gra wykonuje szybki efekt wizualny (Screen Blink).
-2.  Wszyscy wrogowie w pobliżu środka są usuwani.
-3.  Gracz jest teleportowany do bezpiecznej pozycji.
+Mapped to the `T` key, this is a powerful ability. When the gauge reaches "READY":
+1.  The game executes a rapid visual **Screen Blink** effect.
+2.  All enemies near the center are cleared.
+3.  The player is teleported to a safe position.
 
 ### 📼 Memory-Based Replay
-Gra nie odtwarza wideo, lecz **re-symuluje** stan gry.
-* Wykorzystuje dynamiczną alokację pamięci (`malloc`) do przechowywania tysięcy klatek (`ReplayFrame`).
-* Podczas powtórki silnik podmienia aktywny stan gry na ten z bufora pamięci.
+The game does not record video; it **re-simulates** the game state.
+* It utilizes dynamic memory allocation (`malloc`) to store thousands of `ReplayFrame` structures.
+* During replay mode, the engine swaps the active game state with data from the memory buffer.
 
 ---
 
 ## 📂 Codebase Architecture
 
-Struktura projektu jest płaska i modularna. Każdy plik odpowiada za konkretny aspekt domeny:
+The project structure is flat and modular. Each file is responsible for a specific domain aspect:
 
-* **`main.c`** – Entry point. Inicjalizacja biblioteki Ncurses i kolorów.
-* **`game.c`** – Główna pętla gry (Game Loop), zarządzanie czasem ramki (FPS) i stanem (`GameState`).
-* **`swallow.c`** – Logika gracza. Sterowanie, animacja ASCII, zarządzanie życiem.
-* **`hunter.c`** – AI przeciwników. Obliczanie wektorów `dx/dy`, kolizje, logika szarży (Dash).
-* **`star.c`** – Logika znajdziek. Spawnowanie, animacja mrugania.
-* **`safe_zone.c`** – Logika strefy bezpiecznej. Timery, cooldowny, efekt wizualny.
-* **`replay.c`** – System powtórek. Zarządzanie buforem klatek w pamięci sterty.
-* **`render.c`** – Warstwa widoku. Rysowanie UI, HUD, tabeli wyników.
-* **`highscore.c`** – Obsługa plików. Zapis/Odczyt `highscores.txt`, sortowanie wyników.
-* **`config.c`** – Parser plików tekstowych. Wczytywanie poziomów z `levelX.txt`.
-* **`game.h`** – Centralny nagłówek. Definicje stałych (NO MAGIC NUMBERS), struktury i prototypy.
+* **`main.c`** – Entry point. Ncurses initialization and color setup.
+* **`game.c`** – The Core Game Loop, FPS capping, and `GameState` management.
+* **`swallow.c`** – Player logic. Input handling, ASCII animation, life management.
+* **`hunter.c`** – Enemy AI. Vector `dx/dy` calculations, collision detection, Dash logic.
+* **`star.c`** – Collectible logic. Spawning algorithms and blinking animations.
+* **`safe_zone.c`** – Safe Zone logic. Timers, cooldowns, and visual effects.
+* **`replay.c`** – Replay System. Heap memory buffer management.
+* **`render.c`** – View layer. Drawing the UI, HUD, and Scoreboard (decoupled from logic).
+* **`highscore.c`** – File I/O. Reading/Writing `highscores.txt`, sorting results.
+* **`config.c`** – Text Parser. Loading level parameters from `levelX.txt`.
+* **`game.h`** – Central Header. Constant definitions (**NO MAGIC NUMBERS**), structs, and prototypes.
 
 ---
 
 ## 🛠️ Build & Installation
 
 ### Prerequisites
-Wymagany jest kompilator GCC oraz biblioteka `ncurses`.
+You need a GCC compiler and the `ncurses` library installed.
 
 * **Debian/Ubuntu:** `sudo apt-get install libncurses5-dev libncursesw5-dev`
 * **Fedora:** `sudo dnf install ncurses-devel`
 * **MacOS:** `brew install ncurses`
 
 ### Compilation
-Użyj poniższego polecenia w katalogu głównym projektu:
+Run the following command in the project root directory:
 
 ```bash
 gcc -o swallow_stars main.c game.c config.c highscore.c hunter.c render.c replay.c safe_zone.c star.c swallow.c -lncurses -lm
