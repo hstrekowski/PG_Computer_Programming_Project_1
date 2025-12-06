@@ -69,22 +69,39 @@ void show_start_screen(WINDOW *gameScreen, PlayerConfig *config)
 {
     echo();
     curs_set(1);
-    int box_h = 10, box_w = 50;
+
+    int box_h = 14, box_w = 60;
     int sy = (GAME_SCREEN_HEIGHT - box_h) / 2;
     int sx = (GAME_SCREEN_WIDTH - box_w) / 2;
 
     WINDOW *win = derwin(gameScreen, box_h, box_w, sy, sx);
     box(win, 0, 0);
-    mvwprintw(win, 0, (box_w - 12) / 2, " GAME SETUP ");
 
-    mvwprintw(win, 3, 4, "Enter Nickname:");
-    wrefresh(win);
-    mvwgetnstr(win, 4, 4, config->name, 29);
+    // TITLE
+    char *title = "SWALLOW STARS";
+    wattron(win, A_BOLD);
+    mvwprintw(win, 2, (box_w - strlen(title)) / 2, "%s", title);
+    wattroff(win, A_BOLD);
 
-    mvwprintw(win, 6, 4, "Level (1-10):");
+    mvwhline(win, 3, 2, 0, box_w - 4);
+
+    // NICKNAME
+    char *lbl_nick = "ENTER NICKNAME";
+    mvwprintw(win, 6, (box_w - strlen(lbl_nick)) / 2, "%s", lbl_nick);
     wrefresh(win);
+
+    int input_start_x = (box_w - 29) / 2;
+    mvwgetnstr(win, 7, input_start_x, config->name, 29);
+
+    // LEVEL
+    char *lbl_lvl = "SELECT LEVEL (1-10)";
+    mvwprintw(win, 9, (box_w - strlen(lbl_lvl)) / 2, "%s", lbl_lvl);
+    wrefresh(win);
+
+    // Input levelu (max 2 cyfry, więc (60-2)/2 = 29)
     char buf[10];
-    mvwgetnstr(win, 7, 4, buf, 9);
+    int lvl_start_x = (box_w - 2) / 2;
+    mvwgetnstr(win, 10, lvl_start_x, buf, 9);
     config->startLevel = atoi(buf);
 
     delwin(win);

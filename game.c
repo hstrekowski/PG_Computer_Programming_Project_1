@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <time.h>
+#include <string.h>
 
 typedef struct GameState
 {
@@ -37,8 +38,23 @@ int init_game_state(GameState *g, Swallow *s, PlayerConfig *p, WINDOW *win)
     {
         wclear(win);
         box(win, 0, 0);
-        mvwprintw(win, 14, 10, "ERROR: Missing level%d.txt", p->startLevel);
+
+        char msg[60];
+        sprintf(msg, "ERROR: Missing level%d.txt", p->startLevel);
+
+        int cy = GAME_SCREEN_HEIGHT / 2;
+        int cx = (GAME_SCREEN_WIDTH - strlen(msg)) / 2;
+
+        wattron(win, COLOR_PAIR(PAIR_RED));
+        mvwprintw(win, cy, cx, "%s", msg);
+        mvwprintw(win, cy + 2, (GAME_SCREEN_WIDTH - 20) / 2, "Press any key...");
+        wattroff(win, COLOR_PAIR(PAIR_RED));
+
         wrefresh(win);
+
+        nodelay(win, FALSE);
+        wgetch(win);
+
         return 0;
     }
 
