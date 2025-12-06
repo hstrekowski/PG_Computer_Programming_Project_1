@@ -16,7 +16,10 @@ void update_safe_zone(SafeZone *sz);
 // Rysowanie ramki strefy
 void draw_safe_zone(WINDOW *win, SafeZone *sz);
 
-// Efekt mrugania ekranem (publiczny)
+// Efekt mrugania ekranem
 void blink_effect(WINDOW *win);
+
+// Funkcja animacji transportu
+void animate_transport(WINDOW *win, int p_x, int p_y, int z_x, int z_y, char *sign);
 
 #endif

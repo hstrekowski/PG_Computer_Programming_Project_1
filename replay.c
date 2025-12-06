@@ -123,10 +123,25 @@ void play_replay(ReplaySystem *r, WINDOW *gameWin, WINDOW *statWin, PlayerConfig
     {
         if (wgetch(gameWin) == 'q' || wgetch(gameWin) == 'Q')
             break;
+
         ReplayFrame *f = &r->frames[i];
 
+        // Wykrywanie momentu aktywacji strefy
         if (f->safeZone.is_active && !was_active)
-            blink_effect(gameWin);
+        {
+            // Musimy wiedzieć skąd przyleciał gracz.
+            int start_x = f->swallow.x;
+            int start_y = f->swallow.y;
+
+            if (i > 0)
+            {
+                start_x = r->frames[i - 1].swallow.x;
+                start_y = r->frames[i - 1].swallow.y;
+            }
+
+            animate_transport(gameWin, start_x, start_y, f->safeZone.x, f->safeZone.y, f->swallow.sign);
+        }
+
         was_active = f->safeZone.is_active;
 
         render_replay_scene(gameWin, f);

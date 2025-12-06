@@ -32,7 +32,7 @@ void blink_effect(WINDOW *win)
 }
 
 // Rysuje lub zmazuje safe_zone
-static void draw_flying_box(WINDOW *win, int cx, int cy, int show_player, char *sign, int erase)
+void draw_flying_box(WINDOW *win, int cx, int cy, int show_player, char *sign, int erase)
 {
     int color = PAIR_ORANGE;
     for (int dy = -1; dy <= 1; dy++)
@@ -72,7 +72,7 @@ static void draw_flying_box(WINDOW *win, int cx, int cy, int show_player, char *
 }
 
 // Animacja transportu z wykorzystaniem blink_effect
-static void animate_transport(WINDOW *win, int p_x, int p_y, int z_x, int z_y, char *sign)
+void animate_transport(WINDOW *win, int p_x, int p_y, int z_x, int z_y, char *sign)
 {
     int steps = ZONE_ANIMATION_STEPS; // Mniej kroków = szybciej
     int delay = ZONE_ANIMATION_DELAY; // 10ms = bardzo szybko
@@ -113,6 +113,7 @@ static void animate_transport(WINDOW *win, int p_x, int p_y, int z_x, int z_y, c
 
 void activate_zone(SafeZone *sz, Swallow *swallow, WINDOW *win)
 {
+    // Jeżeli minał początkowy cooldown albo normalny cooldown sie skonczył
     if (sz->game_start_timer > ZONE_START_COOLDOWN * FRAME_RATE && sz->cooldown_timer <= 0)
     {
 
