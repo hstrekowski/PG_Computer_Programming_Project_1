@@ -59,6 +59,8 @@
 #define ZONE_COOLDOWN 30
 #define ZONE_START_COOLDOWN 5
 #define ZONE_RADIUS 1
+#define ZONE_ANIMATION_STEPS 8
+#define ZONE_ANIMATION_DELAY 10000
 
 // Ustawienia Huntera
 #define HUNTER_DASH_SPEED 1.2f
