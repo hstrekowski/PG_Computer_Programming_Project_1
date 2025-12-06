@@ -72,18 +72,23 @@ int init_game_state(GameState *g, Swallow *s, PlayerConfig *p, WINDOW *win)
 int process_input(WINDOW *win, Swallow *s, GameState *g)
 {
     int ch = wgetch(win);
+
+    // Obsługa Safe Zone (T)
     handle_safe_zone_input(&g->sz, s, ch, win);
 
+    // Jeśli to nie był klawisz 'T' i nie jest to błąd odczytu
     if (ch != ERR && ch != 't' && ch != 'T')
     {
-        ungetch(ch);
+
         if (!g->sz.is_active)
         {
-            if (handle_input(win, s))
-                return 1;
+            // ZMIANA: Przekazujemy 'ch' bezpośrednio, bez ungetch()
+            if (handle_input(s, ch))
+                return 1; // Zwróć 1 jeśli wciśnięto Q
         }
         else
         {
+            // W safe zone działa tylko Q
             if (ch == 'q' || ch == 'Q')
                 return 1;
         }

@@ -67,7 +67,6 @@ int main()
 
     // End
     nodelay(gameScreen, FALSE);
-    getch();
     refresh_windows(windows, 3);
     endwin();
 

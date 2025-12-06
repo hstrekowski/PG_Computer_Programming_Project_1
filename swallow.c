@@ -13,11 +13,9 @@ void init_swallow(Swallow *swallow)
     swallow->anim_ticker = 0;
 }
 
-int handle_input(WINDOW *gameScreen, Swallow *swallow)
+int handle_input(Swallow *swallow, int ch)
 {
-    int ch = wgetch(gameScreen);
-    if (ch == ERR)
-        return 0;
+    // Nie robimy tutaj wgetch!
 
     switch (ch)
     {
@@ -39,7 +37,7 @@ int handle_input(WINDOW *gameScreen, Swallow *swallow)
         break;
     case 'q':
     case 'Q':
-        return 1;
+        return 1; // Sygnał wyjścia
     case 'o':
     case 'O':
         if (swallow->speed > swallow->minSpeedLimit)
@@ -51,7 +49,6 @@ int handle_input(WINDOW *gameScreen, Swallow *swallow)
             swallow->speed++;
         break;
     }
-    // Znak ustawiamy dynamicznie w update, tu tylko kierunek
     return 0;
 }
 
