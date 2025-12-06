@@ -33,6 +33,7 @@ void setup_hunter_props(Hunter *h, int *allowed)
     {
         type = rand() % 5;
     } while (allowed[type] == 0);
+
     int w[] = {1, 2, 1, 3, 2};
     int he[] = {2, 1, 3, 1, 2};
     int cols[] = {PAIR_HUNTER_GREEN, PAIR_HUNTER_CYAN, PAIR_HUNTER_MAGENTA, PAIR_HUNTER_BLUE, PAIR_RED};
@@ -90,7 +91,6 @@ void execute_dash_launch(Hunter *h, Swallow *s)
     float tx = s->x - h->x;
     float ty = s->y - h->y;
     float dist = sqrt(tx * tx + ty * ty);
-
     float dash_speed = 1.5f;
     if (dist > 0)
     {
@@ -115,7 +115,6 @@ void check_bounce_logic(Hunter *h, Swallow *s, int hx, int hy)
     float tx = s->x - h->x, ty = s->y - h->y;
     float dist = sqrt(tx * tx + ty * ty);
     int need_dash = 0;
-
     if (dist > 0)
     {
         float plen = sqrt(pdx * pdx + pdy * pdy);
@@ -123,11 +122,8 @@ void check_bounce_logic(Hunter *h, Swallow *s, int hx, int hy)
         if (dot < 0.99)
             need_dash = 1;
     }
-
     if (need_dash)
-    {
         h->dash_wait_timer = 22;
-    }
     else
     {
         h->dx = pdx;
@@ -139,13 +135,38 @@ void draw_hunter(WINDOW *win, Hunter *h)
 {
     wattron(win, COLOR_PAIR(h->color_pair));
     for (int ry = 0; ry < h->height; ry++)
-    {
         for (int rx = 0; rx < h->width; rx++)
-        {
             mvwprintw(win, (int)h->y + ry, (int)h->x + rx, "%d", h->bounces_left);
+    wattroff(win, COLOR_PAIR(h->color_pair));
+}
+
+// Funkcja pomocnicza: Sprawdzanie kolizji
+static int check_hunter_collisions(Hunter *h, Swallow *s, SafeZone *sz, int dmg)
+{
+    // Safe Zone
+    if (sz->is_active)
+    {
+        int zr = 1;
+        int zl = sz->x - zr, zr_ = sz->x + zr;
+        int zt = sz->y - zr, zb = sz->y + zr;
+        if ((int)h->x <= zr_ && (int)h->x + h->width >= zl &&
+            (int)h->y <= zb && (int)h->y + h->height >= zt)
+        {
+            h->is_active = 0;
+            return 1; // Usunięty przez strefę
         }
     }
-    wattroff(win, COLOR_PAIR(h->color_pair));
+    // Player
+    int hit = (s->x >= (int)h->x && s->x < (int)h->x + h->width &&
+               s->y >= (int)h->y && s->y < (int)h->y + h->height);
+    if (hit && !sz->is_active)
+    {
+        if (s->lifeForce > 0)
+            s->lifeForce -= dmg;
+        h->is_active = 0;
+        return 1; // Usunięty po trafieniu
+    }
+    return 0;
 }
 
 void update_single_hunter(WINDOW *win, Hunter *h, Swallow *s, int dmg, SafeZone *sz)
@@ -154,13 +175,11 @@ void update_single_hunter(WINDOW *win, Hunter *h, Swallow *s, int dmg, SafeZone 
     {
         h->dash_wait_timer--;
         if (h->dash_wait_timer == 0)
-        {
             execute_dash_launch(h, s);
-        }
         draw_hunter(win, h);
         return;
     }
-
+    // Wymazywanie
     for (int ry = 0; ry < h->height; ry++)
         for (int rx = 0; rx < h->width; rx++)
             mvwprintw(win, (int)h->y + ry, (int)h->x + rx, " ");
@@ -169,10 +188,9 @@ void update_single_hunter(WINDOW *win, Hunter *h, Swallow *s, int dmg, SafeZone 
     h->x += h->dx;
     h->y += h->dy;
 
-    // Sprawdzanie ścian
+    // Ściany
     int hx = (h->x <= 1) || (h->x + h->width >= GAME_SCREEN_WIDTH - 1);
     int hy = (h->y <= 1) || (h->y + h->height >= GAME_SCREEN_HEIGHT - 1);
-
     if (hx)
         h->x = (h->x <= 1) ? 1.1f : GAME_SCREEN_WIDTH - 1 - h->width - 0.1f;
     if (hy)
@@ -188,31 +206,8 @@ void update_single_hunter(WINDOW *win, Hunter *h, Swallow *s, int dmg, SafeZone 
         }
     }
 
-    // Safe Zone Collision
-    if (sz->is_active)
-    {
-        int zr = 1;
-        int zl = sz->x - zr, zr_ = sz->x + zr;
-        int zt = sz->y - zr, zb = sz->y + zr;
-        if ((int)h->x <= zr_ && (int)h->x + h->width >= zl &&
-            (int)h->y <= zb && (int)h->y + h->height >= zt)
-        {
-            h->is_active = 0;
-            return;
-        }
-    }
-
-    // Player Collision
-    int hit = (s->x >= (int)h->x && s->x < (int)h->x + h->width &&
-               s->y >= (int)h->y && s->y < (int)h->y + h->height);
-
-    if (hit && !sz->is_active)
-    {
-        if (s->lifeForce > 0)
-            s->lifeForce -= dmg;
-        h->is_active = 0;
+    if (check_hunter_collisions(h, s, sz, dmg))
         return;
-    }
 
     draw_hunter(win, h);
 }

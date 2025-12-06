@@ -12,36 +12,32 @@ void init_safe_zone(SafeZone *sz)
     sz->game_start_timer = 0;
 }
 
+static void blink_effect(WINDOW *win)
+{
+    for (int i = 0; i < 3; i++)
+    {
+        wbkgd(win, COLOR_PAIR(PAIR_ORANGE) | A_REVERSE);
+        wrefresh(win);
+        usleep(60000);
+        wbkgd(win, COLOR_PAIR(0));
+        wrefresh(win);
+        usleep(60000);
+    }
+}
+
 void activate_zone(SafeZone *sz, Swallow *swallow, WINDOW *win)
 {
     if (sz->game_start_timer > 5 * FRAME_RATE && sz->cooldown_timer <= 0)
     {
-        // === EFEKT BLINK START ===
-        // Mrugamy 3 razy bardzo szybko
-        for (int i = 0; i < 3; i++)
-        {
-            // Ustawiamy tło na żółte (PAIR_ORANGE + A_REVERSE daje żółte tło)
-            wbkgd(win, COLOR_PAIR(PAIR_ORANGE) | A_REVERSE);
-            wrefresh(win);
-            usleep(60000); // 60ms pauzy (bardzo krótko)
-
-            // Wracamy do normy (brak koloru)
-            wbkgd(win, COLOR_PAIR(0));
-            wrefresh(win);
-            usleep(60000); // 60ms pauzy
-        }
-        // === EFEKT BLINK KONIEC ===
+        blink_effect(win);
 
         sz->is_active = 1;
         sz->duration_timer = 5 * FRAME_RATE;
         sz->cooldown_timer = 30 * FRAME_RATE;
-
         mvwprintw(win, swallow->y, swallow->x, " ");
 
         swallow->x = sz->x;
         swallow->y = sz->y;
-
-        // TERAZ UŻYWAMY STAŁYCH Z GAME.H
         swallow->direction = UP;
         swallow->sign = UP_SIGN;
     }
@@ -50,9 +46,7 @@ void activate_zone(SafeZone *sz, Swallow *swallow, WINDOW *win)
 void handle_safe_zone_input(SafeZone *sz, Swallow *swallow, int ch, WINDOW *win)
 {
     if (ch == 't' || ch == 'T')
-    {
         activate_zone(sz, swallow, win);
-    }
 }
 
 void update_safe_zone(SafeZone *sz)
@@ -60,32 +54,24 @@ void update_safe_zone(SafeZone *sz)
     sz->game_start_timer++;
     if (sz->cooldown_timer > 0)
         sz->cooldown_timer--;
-
     if (sz->is_active)
     {
         sz->duration_timer--;
         if (sz->duration_timer <= 0)
-        {
             sz->is_active = 0;
-        }
     }
 }
 
 void draw_safe_zone(WINDOW *win, SafeZone *sz)
 {
-    // Jeśli nieaktywna I timer jest poniżej 0 (-1), to znaczy że już posprzątane. Wychodzimy.
     if (!sz->is_active && sz->duration_timer < 0)
         return;
-
     int radius = 1;
-
-    // Jeśli aktywna -> rysuj "O". Jeśli nieaktywna (ale timer == 0) -> rysuj spacje " "
     char *pixel = sz->is_active ? "O" : " ";
     int pair = sz->is_active ? PAIR_ORANGE : 0;
 
     if (sz->is_active)
         wattron(win, COLOR_PAIR(pair));
-
     for (int dy = -radius; dy <= radius; dy++)
     {
         for (int dx = -radius; dx <= radius; dx++)
@@ -99,14 +85,8 @@ void draw_safe_zone(WINDOW *win, SafeZone *sz)
             }
         }
     }
-
     if (sz->is_active)
         wattroff(win, COLOR_PAIR(pair));
-
-    // Jeśli właśnie wyczyściliśmy (czyli byliśmy tu, gdy active=0 i timer=0),
-    // ustawiamy timer na -1, żeby w kolejnej klatce funkcja od razu wyszła (return na początku).
     if (!sz->is_active)
-    {
         sz->duration_timer = -1;
-    }
 }

@@ -15,8 +15,6 @@ void init_swallow(Swallow *swallow)
 
 int handle_input(Swallow *swallow, int ch)
 {
-    // Nie robimy tutaj wgetch!
-
     switch (ch)
     {
     case 'w':
@@ -37,7 +35,7 @@ int handle_input(Swallow *swallow, int ch)
         break;
     case 'q':
     case 'Q':
-        return 1; // Sygnał wyjścia
+        return 1;
     case 'o':
     case 'O':
         if (swallow->speed > swallow->minSpeedLimit)
@@ -54,120 +52,96 @@ int handle_input(Swallow *swallow, int ch)
 
 char *get_animated_sign(int direction, int ticker)
 {
-    // Machamy co 5 klatek
     int flap = (ticker / 5) % 2;
-
     switch (direction)
     {
-    // Góra: ^ (złożone) vs - (rozłożone)
     case UP:
         return flap ? "^" : "-";
-    // Dół: v (złożone) vs W (rozłożone)
     case DOWN:
         return flap ? "v" : "W";
-    // Lewo: < vs {
     case LEFT:
         return flap ? "<" : "{";
-    // Prawo: > vs }
     case RIGHT:
         return flap ? ">" : "}";
     }
     return "^";
 }
 
-void update_swallow_position(WINDOW *gameScreen, Swallow *swallow, int *move_counter)
+// Funkcja pomocnicza: Oblicza pozycję i odbicia
+static void calculate_next_pos(Swallow *s)
 {
-    swallow->anim_ticker++;
+    switch (s->direction)
+    {
+    case UP:
+        s->y--;
+        break;
+    case DOWN:
+        s->y++;
+        break;
+    case LEFT:
+        s->x--;
+        break;
+    case RIGHT:
+        s->x++;
+        break;
+    }
+    if (s->y < 1)
+    {
+        s->y = 2;
+        s->direction = DOWN;
+        s->sign = DOWN_SIGN;
+    }
+    else if (s->y > GAME_SCREEN_HEIGHT - 2)
+    {
+        s->y = GAME_SCREEN_HEIGHT - 3;
+        s->direction = UP;
+        s->sign = UP_SIGN;
+    }
+    else if (s->x < 1)
+    {
+        s->x = 2;
+        s->direction = RIGHT;
+        s->sign = RIGHT_SIGN;
+    }
+    else if (s->x > GAME_SCREEN_WIDTH - 2)
+    {
+        s->x = GAME_SCREEN_WIDTH - 3;
+        s->direction = LEFT;
+        s->sign = LEFT_SIGN;
+    }
+}
 
+// Funkcja pomocnicza: Rysowanie
+static void draw_swallow_visuals(WINDOW *win, Swallow *s)
+{
+    s->sign = get_animated_sign(s->direction, s->anim_ticker);
+    int color = PAIR_WHITE;
+    if (s->lifeForce == 2)
+        color = PAIR_ORANGE;
+    else if (s->lifeForce <= 1)
+        color = PAIR_RED;
+
+    wattron(win, COLOR_PAIR(color));
+    mvwprintw(win, s->y, s->x, "%s", s->sign);
+    wattroff(win, COLOR_PAIR(color));
+}
+
+void update_swallow_position(WINDOW *gameScreen, Swallow *s, int *move_counter)
+{
+    s->anim_ticker++;
     if (*move_counter <= 0)
     {
-        int prev_y = swallow->y;
-        int prev_x = swallow->x;
+        mvwprintw(gameScreen, s->y, s->x, " "); // Wyczyść stare
+        calculate_next_pos(s);
+        draw_swallow_visuals(gameScreen, s);
 
-        switch (swallow->direction)
-        {
-        case UP:
-            swallow->y--;
-            break;
-        case DOWN:
-            swallow->y++;
-            break;
-        case LEFT:
-            swallow->x--;
-            break;
-        case RIGHT:
-            swallow->x++;
-            break;
-        }
-
-        // Górna ściana
-        if (swallow->y < 1)
-        {
-            swallow->y = 2; // Odbijamy na pozycję 2
-            swallow->direction = DOWN;
-            swallow->sign = DOWN_SIGN;
-        }
-        // Dolna ściana
-        else if (swallow->y > GAME_SCREEN_HEIGHT - 2)
-        {
-            swallow->y = GAME_SCREEN_HEIGHT - 3; // Odbijamy w górę
-            swallow->direction = UP;
-            swallow->sign = UP_SIGN;
-        }
-        // Lewa ściana
-        else if (swallow->x < 1)
-        {
-            swallow->x = 2; // Odbijamy w prawo
-            swallow->direction = RIGHT;
-            swallow->sign = RIGHT_SIGN;
-        }
-        // Prawa ściana
-        else if (swallow->x > GAME_SCREEN_WIDTH - 2)
-        {
-            swallow->x = GAME_SCREEN_WIDTH - 3; // Odbijamy w lewo
-            swallow->direction = LEFT;
-            swallow->sign = LEFT_SIGN;
-        }
-
-        // --- Rysowanie ---
-        mvwprintw(gameScreen, prev_y, prev_x, " ");
-
-        // ZMIANA: Dobór koloru
-        int color_pair = PAIR_WHITE; // Domyślny (3 życia lub więcej)
-        if (swallow->lifeForce == 2)
-        {
-            color_pair = PAIR_ORANGE;
-        }
-        else if (swallow->lifeForce <= 1)
-        {
-            color_pair = PAIR_RED;
-        }
-
-        swallow->sign = get_animated_sign(swallow->direction, swallow->anim_ticker);
-
-        // Włącz kolor -> Rysuj -> Wyłącz kolor
-        wattron(gameScreen, COLOR_PAIR(color_pair));
-        mvwprintw(gameScreen, swallow->y, swallow->x, "%s", swallow->sign);
-        wattroff(gameScreen, COLOR_PAIR(color_pair));
-
-        *move_counter = BASE_MOVE_RATE / swallow->speed;
+        *move_counter = BASE_MOVE_RATE / s->speed;
         if (*move_counter < 1)
             *move_counter = 1;
     }
     else
     {
-        // Jeśli się nie ruszamy, ale chcemy animować w miejscu (machanie skrzydłami w locie)
-        // musimy przerysować jaskółkę w tej samej pozycji
-        swallow->sign = get_animated_sign(swallow->direction, swallow->anim_ticker);
-
-        int color_pair = PAIR_WHITE;
-        if (swallow->lifeForce == 2)
-            color_pair = PAIR_ORANGE;
-        else if (swallow->lifeForce <= 1)
-            color_pair = PAIR_RED;
-
-        wattron(gameScreen, COLOR_PAIR(color_pair));
-        mvwprintw(gameScreen, swallow->y, swallow->x, "%s", swallow->sign);
-        wattroff(gameScreen, COLOR_PAIR(color_pair));
+        // Animacja w miejscu
+        draw_swallow_visuals(gameScreen, s);
     }
 }

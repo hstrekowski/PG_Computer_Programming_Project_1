@@ -65,6 +65,24 @@ int load_level_config(int level, LevelConfig *lvlConfig)
     return 1;
 }
 
+// Funkcja pomocnicza: Rysowanie formularza
+static void draw_start_form(WINDOW *win, int box_w)
+{
+    box(win, 0, 0);
+    char *title = "SWALLOW STARS";
+    wattron(win, A_BOLD);
+    mvwprintw(win, 2, (box_w - strlen(title)) / 2, "%s", title);
+    wattroff(win, A_BOLD);
+    mvwhline(win, 3, 2, 0, box_w - 4);
+
+    char *lbl_nick = "ENTER NICKNAME";
+    mvwprintw(win, 6, (box_w - strlen(lbl_nick)) / 2, "%s", lbl_nick);
+
+    char *lbl_lvl = "SELECT LEVEL (1-10)";
+    mvwprintw(win, 9, (box_w - strlen(lbl_lvl)) / 2, "%s", lbl_lvl);
+    wrefresh(win);
+}
+
 void show_start_screen(WINDOW *gameScreen, PlayerConfig *config)
 {
     echo();
@@ -75,30 +93,13 @@ void show_start_screen(WINDOW *gameScreen, PlayerConfig *config)
     int sx = (GAME_SCREEN_WIDTH - box_w) / 2;
 
     WINDOW *win = derwin(gameScreen, box_h, box_w, sy, sx);
-    box(win, 0, 0);
+    draw_start_form(win, box_w);
 
-    // TITLE
-    char *title = "SWALLOW STARS";
-    wattron(win, A_BOLD);
-    mvwprintw(win, 2, (box_w - strlen(title)) / 2, "%s", title);
-    wattroff(win, A_BOLD);
-
-    mvwhline(win, 3, 2, 0, box_w - 4);
-
-    // NICKNAME
-    char *lbl_nick = "ENTER NICKNAME";
-    mvwprintw(win, 6, (box_w - strlen(lbl_nick)) / 2, "%s", lbl_nick);
-    wrefresh(win);
-
+    // Pobieranie Nicku
     int input_start_x = (box_w - 29) / 2;
     mvwgetnstr(win, 7, input_start_x, config->name, 29);
 
-    // LEVEL
-    char *lbl_lvl = "SELECT LEVEL (1-10)";
-    mvwprintw(win, 9, (box_w - strlen(lbl_lvl)) / 2, "%s", lbl_lvl);
-    wrefresh(win);
-
-    // Input levelu (max 2 cyfry, więc (60-2)/2 = 29)
+    // Pobieranie Levelu
     char buf[10];
     int lvl_start_x = (box_w - 2) / 2;
     mvwgetnstr(win, 10, lvl_start_x, buf, 9);
