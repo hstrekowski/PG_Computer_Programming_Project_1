@@ -81,7 +81,6 @@ typedef struct ScoreEntry
     int level;
 } ScoreEntry;
 
-// Forward declaration
 struct Swallow;
 
 // Funkcje ogólne

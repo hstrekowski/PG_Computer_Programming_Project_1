@@ -12,6 +12,7 @@ typedef struct Star
     int is_active;
     int move_timer;
     int speed_delay;
+    int anim_ticker;
 } Star;
 
 void init_stars(Star stars[]);

@@ -13,6 +13,7 @@ typedef struct Swallow
     char *sign;
     int minSpeedLimit;
     int maxSpeedLimit;
+    int anim_ticker;
 } Swallow;
 
 void init_swallow(Swallow *swallow);

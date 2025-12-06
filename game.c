@@ -10,13 +10,7 @@
 #include <stdlib.h>
 #include <time.h>
 
-void refresh_windows(WINDOW *windows[], int n)
-{
-    for (int i = 0; i < n; i++)
-        wrefresh(windows[i]);
-}
-
-typedef struct
+typedef struct GameState
 {
     LevelConfig lvl;
     Stats stats;
@@ -30,6 +24,12 @@ typedef struct
     int star_idx;
 } GameState;
 
+void refresh_windows(WINDOW *windows[], int n)
+{
+    for (int i = 0; i < n; i++)
+        wrefresh(windows[i]);
+}
+
 int init_game_state(GameState *g, Swallow *s, PlayerConfig *p, WINDOW *win)
 {
     if (!load_level_config(p->startLevel, &g->lvl))
@@ -41,14 +41,12 @@ int init_game_state(GameState *g, Swallow *s, PlayerConfig *p, WINDOW *win)
         return 0;
     }
 
-    // --- LOGIKA APPLY LIMITS ---
     s->minSpeedLimit = g->lvl.minSpeed;
     s->maxSpeedLimit = g->lvl.maxSpeed;
     if (s->speed < s->minSpeedLimit)
         s->speed = s->minSpeedLimit;
     if (s->speed > s->maxSpeedLimit)
         s->speed = s->maxSpeedLimit;
-    // ---------------------------
 
     g->stats.score = 0;
     g->stats.starsFumbled = 0;

@@ -10,6 +10,7 @@ void init_swallow(Swallow *swallow)
     swallow->lifeForce = 3;
     swallow->minSpeedLimit = 1;
     swallow->maxSpeedLimit = 5;
+    swallow->anim_ticker = 0;
 }
 
 int handle_input(WINDOW *gameScreen, Swallow *swallow)
@@ -23,22 +24,18 @@ int handle_input(WINDOW *gameScreen, Swallow *swallow)
     case 'w':
     case 'W':
         swallow->direction = UP;
-        swallow->sign = UP_SIGN;
         break;
     case 's':
     case 'S':
         swallow->direction = DOWN;
-        swallow->sign = DOWN_SIGN;
         break;
     case 'a':
     case 'A':
         swallow->direction = LEFT;
-        swallow->sign = LEFT_SIGN;
         break;
     case 'd':
     case 'D':
         swallow->direction = RIGHT;
-        swallow->sign = RIGHT_SIGN;
         break;
     case 'q':
     case 'Q':
@@ -54,11 +51,37 @@ int handle_input(WINDOW *gameScreen, Swallow *swallow)
             swallow->speed++;
         break;
     }
+    // Znak ustawiamy dynamicznie w update, tu tylko kierunek
     return 0;
+}
+
+char *get_animated_sign(int direction, int ticker)
+{
+    // Machamy co 5 klatek
+    int flap = (ticker / 5) % 2;
+
+    switch (direction)
+    {
+    // Góra: ^ (złożone) vs - (rozłożone)
+    case UP:
+        return flap ? "^" : "-";
+    // Dół: v (złożone) vs W (rozłożone)
+    case DOWN:
+        return flap ? "v" : "W";
+    // Lewo: < vs {
+    case LEFT:
+        return flap ? "<" : "{";
+    // Prawo: > vs }
+    case RIGHT:
+        return flap ? ">" : "}";
+    }
+    return "^";
 }
 
 void update_swallow_position(WINDOW *gameScreen, Swallow *swallow, int *move_counter)
 {
+    swallow->anim_ticker++;
+
     if (*move_counter <= 0)
     {
         int prev_y = swallow->y;
@@ -123,6 +146,8 @@ void update_swallow_position(WINDOW *gameScreen, Swallow *swallow, int *move_cou
             color_pair = PAIR_RED;
         }
 
+        swallow->sign = get_animated_sign(swallow->direction, swallow->anim_ticker);
+
         // Włącz kolor -> Rysuj -> Wyłącz kolor
         wattron(gameScreen, COLOR_PAIR(color_pair));
         mvwprintw(gameScreen, swallow->y, swallow->x, "%s", swallow->sign);
@@ -131,5 +156,21 @@ void update_swallow_position(WINDOW *gameScreen, Swallow *swallow, int *move_cou
         *move_counter = BASE_MOVE_RATE / swallow->speed;
         if (*move_counter < 1)
             *move_counter = 1;
+    }
+    else
+    {
+        // Jeśli się nie ruszamy, ale chcemy animować w miejscu (machanie skrzydłami w locie)
+        // musimy przerysować jaskółkę w tej samej pozycji
+        swallow->sign = get_animated_sign(swallow->direction, swallow->anim_ticker);
+
+        int color_pair = PAIR_WHITE;
+        if (swallow->lifeForce == 2)
+            color_pair = PAIR_ORANGE;
+        else if (swallow->lifeForce <= 1)
+            color_pair = PAIR_RED;
+
+        wattron(gameScreen, COLOR_PAIR(color_pair));
+        mvwprintw(gameScreen, swallow->y, swallow->x, "%s", swallow->sign);
+        wattroff(gameScreen, COLOR_PAIR(color_pair));
     }
 }

@@ -217,7 +217,6 @@ void update_single_hunter(WINDOW *win, Hunter *h, Swallow *s, int dmg, SafeZone 
     draw_hunter(win, h);
 }
 
-// ... (update_hunters BEZ ZMIAN - skopiuj z poprzedniej wersji) ...
 void update_hunters(WINDOW *win, Hunter hunters[], Swallow *s, int dmg, SafeZone *sz)
 {
     for (int i = 0; i < MAX_HUNTERS_LIMIT; i++)
