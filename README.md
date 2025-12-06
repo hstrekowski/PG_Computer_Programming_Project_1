@@ -4,7 +4,6 @@
 >
 > Built with **C** and **Ncurses**. Featuring vector-based physics, a custom memory-based replay system, and modular clean code architecture.
 
-![Swallow Stars Banner](path/to/your/banner_image.png)
 ---
 
 ## 📖 About The Project
