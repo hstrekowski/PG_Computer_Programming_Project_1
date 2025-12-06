@@ -158,30 +158,23 @@ void handle_game_over(WINDOW *win, WINDOW *statArea, GameState *g, Swallow *s, P
         count = load_top_scores(top, TOP_N);
     }
 
+    // Rysujemy ekran raz
     draw_game_over(win, p, final_score, won, top, count, quit);
 
-    // Dodajemy info o Replay
-    mvwprintw(win, GAME_SCREEN_HEIGHT - 3, (GAME_SCREEN_WIDTH / 2) - 15, "PRESS 'R' FOR REPLAY or 'Q' TO EXIT");
-    wrefresh(win);
-
-    // Pętla oczekiwania na decyzję gracza
-    nodelay(win, FALSE); // Blokujemy czekając na klawisz
+    nodelay(win, FALSE);
     while (1)
     {
         int ch = wgetch(win);
         if (ch == 'q' || ch == 'Q')
         {
-            break; // Koniec programu
+            break;
         }
         if (ch == 'r' || ch == 'R')
         {
-            // Odtwórz replay
             play_replay(replay, win, statArea, p, &g->lvl);
 
-            // Po replayu narysuj znowu Game Over
+            // Po powrocie z powtórki odświeżamy ekran końcowy
             draw_game_over(win, p, final_score, won, top, count, quit);
-            mvwprintw(win, GAME_SCREEN_HEIGHT - 3, (GAME_SCREEN_WIDTH / 2) - 15, "PRESS 'R' FOR REPLAY or 'Q' TO EXIT");
-            wrefresh(win);
         }
     }
 }

@@ -72,24 +72,25 @@ void draw_status(WINDOW *win, PlayerConfig *p, LevelConfig *l, Stats *s, int liv
     wrefresh(win);
 }
 
-void draw_leaderboard(WINDOW *win, ScoreEntry top[], int count, char *current_player, int current_score)
+void draw_leaderboard(WINDOW *win, ScoreEntry top[], int count, char *curr_pl, int curr_sc, int cy, int cx)
 {
-    int cx = GAME_SCREEN_WIDTH / 2;
-    int cy = GAME_SCREEN_HEIGHT / 2;
+    char *hdr = "--- HALL OF FAME ---";
+    mvwprintw(win, cy, cx - (strlen(hdr) / 2), "%s", hdr);
 
-    mvwprintw(win, cy + 2, cx - 10, "--- TOP %d SCORES ---", TOP_N);
     for (int i = 0; i < count; i++)
     {
-        // Podświetl aktualnego gracza jeśli to jego wynik
-        if (strcmp(top[i].name, current_player) == 0 && top[i].score == current_score)
-        {
-            wattron(win, COLOR_PAIR(PAIR_HUNTER_GREEN));
-        }
-        mvwprintw(win, cy + 4 + i, cx - 15, "%d. %-15s LVL %d : %d", i + 1, top[i].name, top[i].level, top[i].score);
-        if (strcmp(top[i].name, current_player) == 0 && top[i].score == current_score)
-        {
-            wattroff(win, COLOR_PAIR(PAIR_HUNTER_GREEN));
-        }
+        char entry[100];
+        // Formatowanie: 1. NICK ...... 5000 (LVL 1)
+        sprintf(entry, "%d. %-15s %6d (LVL %d)", i + 1, top[i].name, top[i].score, top[i].level);
+
+        int is_me = (strcmp(top[i].name, curr_pl) == 0 && top[i].score == curr_sc);
+        if (is_me)
+            wattron(win, COLOR_PAIR(PAIR_HUNTER_GREEN) | A_BOLD);
+
+        mvwprintw(win, cy + 2 + i, cx - (strlen(entry) / 2), "%s", entry);
+
+        if (is_me)
+            wattroff(win, COLOR_PAIR(PAIR_HUNTER_GREEN) | A_BOLD);
     }
 }
 
@@ -97,36 +98,37 @@ void draw_game_over(WINDOW *win, PlayerConfig *p, int final_score, int won, Scor
 {
     wclear(win);
     box(win, 0, 0);
-
-    char *res;
-    if (won)
-        res = "LEVEL COMPLETED!";
-    else if (quit)
-        res = "GAME ABORTED (Q)";
-    else
-        res = "GAME OVER";
-
     int cx = GAME_SCREEN_WIDTH / 2;
     int cy = GAME_SCREEN_HEIGHT / 2;
 
-    wattron(win, won ? COLOR_PAIR(PAIR_HUNTER_GREEN) : COLOR_PAIR(PAIR_RED));
-    mvwprintw(win, cy - 4, cx - (strlen(res) / 2), "%s", res);
-    wattroff(win, won ? COLOR_PAIR(PAIR_HUNTER_GREEN) : COLOR_PAIR(PAIR_RED));
+    // 1. TYTUŁ (Góra)
+    char *title = won ? "=== MISSION ACCOMPLISHED ===" : "=== MISSION FAILED ===";
+    if (quit)
+        title = "=== ABORTED ===";
 
-    // Rysujemy wynik i tabelę TYLKO jeśli wygrał
+    int title_color = won ? PAIR_HUNTER_GREEN : PAIR_RED;
+    wattron(win, COLOR_PAIR(title_color) | A_BOLD);
+    mvwprintw(win, cy - 8, cx - (strlen(title) / 2), "%s", title);
+    wattroff(win, COLOR_PAIR(title_color) | A_BOLD);
+
+    // 2. WYNIK GRACZA (Środek-Góra)
     if (won)
     {
-        char score_msg[50];
-        sprintf(score_msg, "FINAL SCORE: %d", final_score);
-        mvwprintw(win, cy - 2, cx - (strlen(score_msg) / 2), "%s", score_msg);
-        draw_leaderboard(win, top, count, p->name, final_score);
+        mvwprintw(win, cy - 5, cx - 15, "PLAYER: %s", p->name);
+        mvwprintw(win, cy - 4, cx - 15, "SCORE:  %d", final_score);
+
+        // 3. TABELA (Środek-Dół)
+        draw_leaderboard(win, top, count, p->name, final_score, cy - 1, cx);
     }
     else
     {
-        // Komunikat dla przegranych
-        char *fail_msg = "Mission Failed. No score recorded.";
-        mvwprintw(win, cy, cx - (strlen(fail_msg) / 2), "%s", fail_msg);
+        char *reason = quit ? "You gave up." : "The swallow has fallen.";
+        mvwprintw(win, cy - 2, cx - (strlen(reason) / 2), "%s", reason);
     }
+
+    // 4. STOPKA (Dół) - Instrukcje
+    char *footer = "[ R - WATCH REPLAY ]    [ Q - EXIT GAME ]";
+    mvwprintw(win, GAME_SCREEN_HEIGHT - 3, cx - (strlen(footer) / 2), "%s", footer);
 
     wrefresh(win);
 }
