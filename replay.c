@@ -35,7 +35,39 @@ void record_frame(ReplaySystem *r, Swallow *s, Star stars[], Hunter hunters[], S
     r->frame_count++;
 }
 
-// Funkcja pomocnicza: Rysowanie obiektów gry z klatki powtórki
+// Helper: Odtwarzanie logiki animacji gwiazdy
+static void draw_replay_star(WINDOW *win, Star *s)
+{
+    int speed_factor = 20 - (int)(s->y / 1.5);
+    if (speed_factor < 2)
+        speed_factor = 2;
+
+    int age_color = PAIR_WHITE;
+    if (s->y > (GAME_SCREEN_HEIGHT / 3) * 2)
+        age_color = PAIR_RED;
+    else if (s->y > GAME_SCREEN_HEIGHT / 3)
+        age_color = PAIR_ORANGE;
+
+    int current_color;
+    char *sign;
+
+    // Używamy zapisanego anim_ticker, aby odtworzyć fazę mrugania
+    if ((s->anim_ticker / speed_factor) % 2 == 0)
+    {
+        sign = "*";
+        current_color = PAIR_WHITE;
+    }
+    else
+    {
+        sign = "+";
+        current_color = age_color;
+    }
+
+    wattron(win, COLOR_PAIR(current_color));
+    mvwprintw(win, s->y, s->x, "%s", sign);
+    wattroff(win, COLOR_PAIR(current_color));
+}
+
 static void render_replay_scene(WINDOW *win, ReplayFrame *f)
 {
     wclear(win);
@@ -55,21 +87,13 @@ static void render_replay_scene(WINDOW *win, ReplayFrame *f)
     mvwprintw(win, f->swallow.y, f->swallow.x, "%s", f->swallow.sign);
     wattroff(win, COLOR_PAIR(color));
 
-    // Gwiazdy
+    // Gwiazdy - używamy helpera
     for (int j = 0; j < MAX_STARS_LIMIT; j++)
     {
         if (f->stars[j].is_active)
-        {
-            int s_color = PAIR_WHITE;
-            if (f->stars[j].y > (GAME_SCREEN_HEIGHT / 3) * 2)
-                s_color = PAIR_RED;
-            else if (f->stars[j].y > GAME_SCREEN_HEIGHT / 3)
-                s_color = PAIR_ORANGE;
-            wattron(win, COLOR_PAIR(s_color));
-            mvwprintw(win, f->stars[j].y, f->stars[j].x, "%s", f->stars[j].sign);
-            wattroff(win, COLOR_PAIR(s_color));
-        }
+            draw_replay_star(win, &f->stars[j]);
     }
+
     // Hunterzy
     for (int j = 0; j < MAX_HUNTERS_LIMIT; j++)
     {
@@ -90,6 +114,7 @@ void play_replay(ReplaySystem *r, WINDOW *gameWin, WINDOW *statWin, PlayerConfig
 {
     const int SLEEP = 1000000 / FRAME_RATE;
     nodelay(gameWin, TRUE);
+    int was_active = 0; // Stan strefy w poprzedniej klatce
 
     for (int i = 0; i < r->frame_count; i++)
     {
@@ -97,16 +122,21 @@ void play_replay(ReplaySystem *r, WINDOW *gameWin, WINDOW *statWin, PlayerConfig
             break;
         ReplayFrame *f = &r->frames[i];
 
+        // Wykrywanie momentu aktywacji (Blink Effect)
+        if (f->safeZone.is_active && !was_active)
+        {
+            blink_effect(gameWin);
+        }
+        was_active = f->safeZone.is_active;
+
         render_replay_scene(gameWin, f);
 
         draw_status(statWin, p, l, &f->stats, f->lifeForce, f->frames_left / FRAME_RATE, f->swallow.speed, &f->safeZone);
-
         wattron(statWin, COLOR_PAIR(PAIR_HUNTER_MAGENTA));
         mvwprintw(statWin, 5, 2, "[ REPLAY MODE ]");
         mvwprintw(statWin, 6, 90, "Q - STOP REPLAY");
         wattroff(statWin, COLOR_PAIR(PAIR_HUNTER_MAGENTA));
         wrefresh(statWin);
-
         usleep(SLEEP);
     }
 }

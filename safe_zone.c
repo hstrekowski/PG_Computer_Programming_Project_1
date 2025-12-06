@@ -12,7 +12,8 @@ void init_safe_zone(SafeZone *sz)
     sz->game_start_timer = 0;
 }
 
-static void blink_effect(WINDOW *win)
+// ZMIANA: Usunięto 'static', teraz funkcja jest publiczna
+void blink_effect(WINDOW *win)
 {
     for (int i = 0; i < 3; i++)
     {
@@ -29,7 +30,7 @@ void activate_zone(SafeZone *sz, Swallow *swallow, WINDOW *win)
 {
     if (sz->game_start_timer > 5 * FRAME_RATE && sz->cooldown_timer <= 0)
     {
-        blink_effect(win);
+        blink_effect(win); // Wywołanie efektu
 
         sz->is_active = 1;
         sz->duration_timer = 5 * FRAME_RATE;
