@@ -77,7 +77,6 @@ static void render_replay_scene(WINDOW *win, ReplayFrame *f)
 {
     wclear(win);
     box(win, 0, 0);
-    draw_safe_zone(win, &f->safeZone);
 
     int color = PAIR_WHITE;
     if (f->safeZone.is_active || f->safeZone.duration_timer > 0)
@@ -109,6 +108,8 @@ static void render_replay_scene(WINDOW *win, ReplayFrame *f)
             wattroff(win, COLOR_PAIR(h->color_pair));
         }
     }
+
+    draw_safe_zone(win, &f->safeZone);
     wrefresh(win);
 }
 
