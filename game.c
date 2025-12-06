@@ -3,6 +3,7 @@
 #include "star.h"
 #include "hunter.h"
 #include "config.h"
+#include "replay.h"
 #include "safe_zone.h"
 #include "highscore.h"
 #include "render.h"
@@ -122,16 +123,13 @@ void process_render(WINDOW *win, WINDOW *stat, GameState *g, Swallow *s, PlayerC
     wrefresh(win);
 }
 
-void handle_game_over(WINDOW *win, GameState *g, Swallow *s, PlayerConfig *p, int quit)
+void handle_game_over(WINDOW *win, WINDOW *statArea, GameState *g, Swallow *s, PlayerConfig *p, ReplaySystem *replay, int quit)
 {
-    // Warunek wygranej: Żyje, zebrał gwiazdki i NIE wyszedł sam
     int won = (s->lifeForce > 0 && g->stats.score >= g->lvl.starGoal && !quit);
-
     int final_score = 0;
     ScoreEntry top[TOP_N];
     int count = 0;
 
-    // Obliczamy i zapisujemy wynik TYLKO jeśli wygrał
     if (won)
     {
         final_score = calculate_final_score(&g->stats, s->lifeForce, g->frames, g->lvl.levelNumber);
@@ -139,8 +137,32 @@ void handle_game_over(WINDOW *win, GameState *g, Swallow *s, PlayerConfig *p, in
         count = load_top_scores(top, TOP_N);
     }
 
-    // Przekazujemy flagę quit do renderowania
     draw_game_over(win, p, final_score, won, top, count, quit);
+
+    // Dodajemy info o Replay
+    mvwprintw(win, GAME_SCREEN_HEIGHT - 3, (GAME_SCREEN_WIDTH / 2) - 15, "PRESS 'R' FOR REPLAY or 'Q' TO EXIT");
+    wrefresh(win);
+
+    // Pętla oczekiwania na decyzję gracza
+    nodelay(win, FALSE); // Blokujemy czekając na klawisz
+    while (1)
+    {
+        int ch = wgetch(win);
+        if (ch == 'q' || ch == 'Q')
+        {
+            break; // Koniec programu
+        }
+        if (ch == 'r' || ch == 'R')
+        {
+            // Odtwórz replay
+            play_replay(replay, win, statArea, p, &g->lvl);
+
+            // Po replayu narysuj znowu Game Over
+            draw_game_over(win, p, final_score, won, top, count, quit);
+            mvwprintw(win, GAME_SCREEN_HEIGHT - 3, (GAME_SCREEN_WIDTH / 2) - 15, "PRESS 'R' FOR REPLAY or 'Q' TO EXIT");
+            wrefresh(win);
+        }
+    }
 }
 
 void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, PlayerConfig *config)
@@ -148,6 +170,10 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, Pla
     GameState g;
     if (!init_game_state(&g, swallow, config, gameScreen))
         return;
+
+    // NOWE: Inicjalizacja replayu
+    ReplaySystem replay;
+    init_replay(&replay);
 
     const int SLEEP = 1000000 / FRAME_RATE;
     draw_status(statusArea, config, &g.lvl, &g.stats, swallow->lifeForce, g.frames / FRAME_RATE, swallow->speed, &g.sz);
@@ -164,6 +190,9 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, Pla
 
         process_logic(&g, swallow, gameScreen);
 
+        // NOWE: Nagrywamy klatkę (zanim sprawdzimy win condition, żeby mieć ostatni moment)
+        record_frame(&replay, swallow, g.stars, g.hunters, &g.sz, &g.stats, swallow->lifeForce, g.frames);
+
         if (g.stats.score >= g.lvl.starGoal)
         {
             process_render(gameScreen, statusArea, &g, swallow, config);
@@ -178,5 +207,9 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, Pla
         g.move_ctr--;
     }
 
-    handle_game_over(gameScreen, &g, swallow, config, user_quit);
+    // Przekazujemy replay system do game over
+    handle_game_over(gameScreen, statusArea, &g, swallow, config, &replay, user_quit);
+
+    // Sprzątamy pamięć po replayu
+    free_replay(&replay);
 }
