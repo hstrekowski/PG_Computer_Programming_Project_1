@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Formuła: (Gwiazdki*100 + Życia*300 + Czas*10) * (1 + 0.1 * Level)
+// Formuła obliczania punktów końcowych
 int calculate_final_score(Stats *s, int lives, int frames_left, int level_num)
 {
     int time_bonus = (frames_left / FRAME_RATE) * 10;
@@ -13,30 +13,31 @@ int calculate_final_score(Stats *s, int lives, int frames_left, int level_num)
     return (int)(base_score * multiplier);
 }
 
+// Dopisywanie wyniku do pliku
 void save_score(char *name, int score, int level)
 {
     FILE *f = fopen("highscores.txt", "a");
     if (!f)
         return;
-    // Zapisujemy: Nazwa Wynik Poziom
     fprintf(f, "%s %d %d\n", name, score, level);
     fclose(f);
 }
 
+// Funkcja porównująca dla qsort
 int compare_scores(const void *a, const void *b)
 {
     ScoreEntry *sa = (ScoreEntry *)a;
     ScoreEntry *sb = (ScoreEntry *)b;
-    return sb->score - sa->score; // Malejąco
+    return sb->score - sa->score;
 }
 
+// Wczytanie, sortowanie i zwracanie topki
 int load_top_scores(ScoreEntry entries[], int max_count)
 {
     FILE *f = fopen("highscores.txt", "r");
     if (!f)
         return 0;
 
-    // Tymczasowa tablica na dużo wyników (np. 100), potem posortujemy
     ScoreEntry temp[100];
     int count = 0;
 
@@ -50,8 +51,6 @@ int load_top_scores(ScoreEntry entries[], int max_count)
 
     int return_count = (count < max_count) ? count : max_count;
     for (int i = 0; i < return_count; i++)
-    {
         entries[i] = temp[i];
-    }
     return return_count;
 }

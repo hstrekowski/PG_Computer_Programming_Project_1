@@ -12,6 +12,7 @@
 #include <time.h>
 #include <string.h>
 
+// Główna struktura stanu gry
 typedef struct GameState
 {
     LevelConfig lvl;
@@ -26,35 +27,26 @@ typedef struct GameState
     int star_idx;
 } GameState;
 
+// Odświeżanie wszystkich okien
 void refresh_windows(WINDOW *windows[], int n)
 {
     for (int i = 0; i < n; i++)
         wrefresh(windows[i]);
 }
 
+// Inicjalizacja stanu nowej gry
 int init_game_state(GameState *g, Swallow *s, PlayerConfig *p, WINDOW *win)
 {
     if (!load_level_config(p->startLevel, &g->lvl))
     {
         wclear(win);
         box(win, 0, 0);
-
         char msg[60];
         sprintf(msg, "ERROR: Missing level%d.txt", p->startLevel);
-
-        int cy = GAME_SCREEN_HEIGHT / 2;
-        int cx = (GAME_SCREEN_WIDTH - strlen(msg)) / 2;
-
-        wattron(win, COLOR_PAIR(PAIR_RED));
-        mvwprintw(win, cy, cx, "%s", msg);
-        mvwprintw(win, cy + 2, (GAME_SCREEN_WIDTH - 20) / 2, "Press any key...");
-        wattroff(win, COLOR_PAIR(PAIR_RED));
-
+        mvwprintw(win, GAME_SCREEN_HEIGHT / 2, (GAME_SCREEN_WIDTH - strlen(msg)) / 2, "%s", msg);
         wrefresh(win);
-
         nodelay(win, FALSE);
         wgetch(win);
-
         return 0;
     }
 
@@ -85,26 +77,21 @@ int init_game_state(GameState *g, Swallow *s, PlayerConfig *p, WINDOW *win)
     return 1;
 }
 
+// Obsługa wejścia od gracza
 int process_input(WINDOW *win, Swallow *s, GameState *g)
 {
     int ch = wgetch(win);
-
-    // Obsługa Safe Zone (T)
     handle_safe_zone_input(&g->sz, s, ch, win);
 
-    // Jeśli to nie był klawisz 'T' i nie jest to błąd odczytu
     if (ch != ERR && ch != 't' && ch != 'T')
     {
-
         if (!g->sz.is_active)
         {
-            // ZMIANA: Przekazujemy 'ch' bezpośrednio, bez ungetch()
             if (handle_input(s, ch))
-                return 1; // Zwróć 1 jeśli wciśnięto Q
+                return 1;
         }
         else
         {
-            // W safe zone działa tylko Q
             if (ch == 'q' || ch == 'Q')
                 return 1;
         }
@@ -112,6 +99,7 @@ int process_input(WINDOW *win, Swallow *s, GameState *g)
     return 0;
 }
 
+// Aktualizacja logiki obiektów gry
 void process_logic(GameState *g, Swallow *s, WINDOW *win)
 {
     if (g->sz.is_active)
@@ -136,6 +124,7 @@ void process_logic(GameState *g, Swallow *s, WINDOW *win)
     update_safe_zone(&g->sz);
 }
 
+// Rysowanie klatki gry
 void process_render(WINDOW *win, WINDOW *stat, GameState *g, Swallow *s, PlayerConfig *p)
 {
     box(win, 0, 0);
@@ -144,6 +133,7 @@ void process_render(WINDOW *win, WINDOW *stat, GameState *g, Swallow *s, PlayerC
     wrefresh(win);
 }
 
+// Obsługa końca gry i powtórek
 void handle_game_over(WINDOW *win, WINDOW *statArea, GameState *g, Swallow *s, PlayerConfig *p, ReplaySystem *replay, int quit)
 {
     int won = (s->lifeForce > 0 && g->stats.score >= g->lvl.starGoal && !quit);
@@ -158,42 +148,34 @@ void handle_game_over(WINDOW *win, WINDOW *statArea, GameState *g, Swallow *s, P
         count = load_top_scores(top, TOP_N);
     }
 
-    // Rysujemy ekran raz
     draw_game_over(win, p, final_score, won, top, count, quit);
-
     nodelay(win, FALSE);
     while (1)
     {
         int ch = wgetch(win);
         if (ch == 'q' || ch == 'Q')
-        {
             break;
-        }
         if (ch == 'r' || ch == 'R')
         {
             play_replay(replay, win, statArea, p, &g->lvl);
-
-            // Po powrocie z powtórki odświeżamy ekran końcowy
             draw_game_over(win, p, final_score, won, top, count, quit);
         }
     }
 }
 
+// Główna pętla rozgrywki
 void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, PlayerConfig *config)
 {
     GameState g;
     if (!init_game_state(&g, swallow, config, gameScreen))
         return;
 
-    // NOWE: Inicjalizacja replayu
     ReplaySystem replay;
     init_replay(&replay);
-
     const int SLEEP = 1000000 / FRAME_RATE;
     draw_status(statusArea, config, &g.lvl, &g.stats, swallow->lifeForce, g.frames / FRAME_RATE, swallow->speed, &g.sz);
 
     int user_quit = 0;
-
     while (g.frames > 0 && swallow->lifeForce > 0)
     {
         if (process_input(gameScreen, swallow, &g))
@@ -201,10 +183,7 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, Pla
             user_quit = 1;
             break;
         }
-
         process_logic(&g, swallow, gameScreen);
-
-        // NOWE: Nagrywamy klatkę (zanim sprawdzimy win condition, żeby mieć ostatni moment)
         record_frame(&replay, swallow, g.stars, g.hunters, &g.sz, &g.stats, swallow->lifeForce, g.frames);
 
         if (g.stats.score >= g.lvl.starGoal)
@@ -213,17 +192,12 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, Pla
             usleep(500000);
             break;
         }
-
         process_render(gameScreen, statusArea, &g, swallow, config);
         usleep(SLEEP);
         g.frames--;
         g.fc++;
         g.move_ctr--;
     }
-
-    // Przekazujemy replay system do game over
     handle_game_over(gameScreen, statusArea, &g, swallow, config, &replay, user_quit);
-
-    // Sprzątamy pamięć po replayu
     free_replay(&replay);
 }

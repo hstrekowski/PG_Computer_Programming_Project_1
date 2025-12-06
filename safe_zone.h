@@ -4,19 +4,19 @@
 #include "game.h"
 #include "swallow.h"
 
-// Inicjalizacja
+// Inicjalizacja struktury strefy
 void init_safe_zone(SafeZone *sz);
 
-// Input
+// Obsługa klawisza i aktywacja
 void handle_safe_zone_input(SafeZone *sz, Swallow *swallow, int ch, WINDOW *win);
 
-// Update
+// Aktualizacja liczników czasu strefy
 void update_safe_zone(SafeZone *sz);
 
-// Render
+// Rysowanie ramki strefy
 void draw_safe_zone(WINDOW *win, SafeZone *sz);
 
-// NOWE: Funkcja efektu mrugania (publiczna dla replayu)
+// Efekt mrugania ekranem (publiczny)
 void blink_effect(WINDOW *win);
 
 #endif

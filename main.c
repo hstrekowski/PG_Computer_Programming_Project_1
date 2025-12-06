@@ -4,6 +4,7 @@
 #include "render.h"
 #include "config.h"
 
+// Konfiguracja ncurses i kolorów
 static void setup_ncurses()
 {
     initscr();
@@ -24,6 +25,7 @@ static void setup_ncurses()
     }
 }
 
+// Tworzenie okien gry
 static void setup_windows(WINDOW **win, WINDOW **game, WINDOW **stat)
 {
     int max_y, max_x;
@@ -46,6 +48,7 @@ static void setup_windows(WINDOW **win, WINDOW **game, WINDOW **stat)
     box(*stat, 0, 0);
 }
 
+// Główny punkt wejścia
 int main()
 {
     setup_ncurses();

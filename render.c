@@ -1,12 +1,14 @@
 #include "render.h"
 #include <string.h>
 
+// Rysowanie nagłówka statusu
 void draw_status_header(WINDOW *win, PlayerConfig *p, LevelConfig *l)
 {
     mvwprintw(win, 1, 2, "PLAYER: %s", p->name);
     mvwprintw(win, 1, 40, "LEVEL: %d", l->levelNumber);
 }
 
+// Rysowanie statystyk i żyć
 void draw_status_stats(WINDOW *win, LevelConfig *l, Stats *s, int lives, int time, int speed)
 {
     if (s->score >= l->starGoal)
@@ -30,6 +32,7 @@ void draw_status_stats(WINDOW *win, LevelConfig *l, Stats *s, int lives, int tim
     mvwprintw(win, 3, 40, "SPEED: %d", speed);
 }
 
+// Rysowanie statusu Safe Zone
 void draw_zone_status(WINDOW *win, SafeZone *sz)
 {
     if (sz->is_active)
@@ -54,6 +57,7 @@ void draw_zone_status(WINDOW *win, SafeZone *sz)
     }
 }
 
+// Główna funkcja rysowania statusu
 void draw_status(WINDOW *win, PlayerConfig *p, LevelConfig *l, Stats *s, int lives, int time, int speed, SafeZone *sz)
 {
     werase(win);
@@ -72,6 +76,7 @@ void draw_status(WINDOW *win, PlayerConfig *p, LevelConfig *l, Stats *s, int liv
     wrefresh(win);
 }
 
+// Wyświetlanie tabeli wyników
 void draw_leaderboard(WINDOW *win, ScoreEntry top[], int count, char *curr_pl, int curr_sc, int cy, int cx)
 {
     char *hdr = "--- HALL OF FAME ---";
@@ -80,20 +85,17 @@ void draw_leaderboard(WINDOW *win, ScoreEntry top[], int count, char *curr_pl, i
     for (int i = 0; i < count; i++)
     {
         char entry[100];
-        // Formatowanie: 1. NICK ...... 5000 (LVL 1)
         sprintf(entry, "%d. %-15s %6d (LVL %d)", i + 1, top[i].name, top[i].score, top[i].level);
-
         int is_me = (strcmp(top[i].name, curr_pl) == 0 && top[i].score == curr_sc);
         if (is_me)
             wattron(win, COLOR_PAIR(PAIR_HUNTER_GREEN) | A_BOLD);
-
         mvwprintw(win, cy + 2 + i, cx - (strlen(entry) / 2), "%s", entry);
-
         if (is_me)
             wattroff(win, COLOR_PAIR(PAIR_HUNTER_GREEN) | A_BOLD);
     }
 }
 
+// Rysowanie ekranu końca gry
 void draw_game_over(WINDOW *win, PlayerConfig *p, int final_score, int won, ScoreEntry top[], int count, int quit)
 {
     wclear(win);
@@ -101,7 +103,6 @@ void draw_game_over(WINDOW *win, PlayerConfig *p, int final_score, int won, Scor
     int cx = GAME_SCREEN_WIDTH / 2;
     int cy = GAME_SCREEN_HEIGHT / 2;
 
-    // 1. TYTUŁ (Góra)
     char *title = won ? "=== MISSION ACCOMPLISHED ===" : "=== MISSION FAILED ===";
     if (quit)
         title = "=== ABORTED ===";
@@ -111,13 +112,10 @@ void draw_game_over(WINDOW *win, PlayerConfig *p, int final_score, int won, Scor
     mvwprintw(win, cy - 8, cx - (strlen(title) / 2), "%s", title);
     wattroff(win, COLOR_PAIR(title_color) | A_BOLD);
 
-    // 2. WYNIK GRACZA (Środek-Góra)
     if (won)
     {
         mvwprintw(win, cy - 5, cx - 15, "PLAYER: %s", p->name);
         mvwprintw(win, cy - 4, cx - 15, "SCORE:  %d", final_score);
-
-        // 3. TABELA (Środek-Dół)
         draw_leaderboard(win, top, count, p->name, final_score, cy - 1, cx);
     }
     else
@@ -126,9 +124,7 @@ void draw_game_over(WINDOW *win, PlayerConfig *p, int final_score, int won, Scor
         mvwprintw(win, cy - 2, cx - (strlen(reason) / 2), "%s", reason);
     }
 
-    // 4. STOPKA (Dół) - Instrukcje
     char *footer = "[ R - WATCH REPLAY ]    [ Q - EXIT GAME ]";
     mvwprintw(win, GAME_SCREEN_HEIGHT - 3, cx - (strlen(footer) / 2), "%s", footer);
-
     wrefresh(win);
 }

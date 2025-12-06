@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 
+// Resetowanie tablicy przeciwników
 void init_hunters(Hunter hunters[])
 {
     for (int i = 0; i < MAX_HUNTERS_LIMIT; i++)
@@ -12,6 +13,7 @@ void init_hunters(Hunter hunters[])
     }
 }
 
+// Obliczanie dynamicznego limitu wrogów
 int get_dynamic_limit(int max, int current_frame, int total)
 {
     int rem = total - current_frame;
@@ -23,6 +25,7 @@ int get_dynamic_limit(int max, int current_frame, int total)
     return (limit > MAX_HUNTERS_LIMIT) ? MAX_HUNTERS_LIMIT : limit;
 }
 
+// Losowanie właściwości nowego wroga
 void setup_hunter_props(Hunter *h, int *allowed)
 {
     h->is_active = 1;
@@ -42,6 +45,7 @@ void setup_hunter_props(Hunter *h, int *allowed)
     h->color_pair = cols[type];
 }
 
+// Obliczanie wektora ruchu wroga
 void spawn_vectors(Hunter *h, Swallow *s)
 {
     float tx = (float)s->x, ty = (float)s->y;
@@ -60,6 +64,7 @@ void spawn_vectors(Hunter *h, Swallow *s)
     }
 }
 
+// Logika spawnowania wroga
 void try_spawn_hunter(Hunter hunters[], Swallow *s, int fc, int tf, int freq, int max, int allowed[5])
 {
     if (fc % freq != 0)
@@ -86,12 +91,13 @@ void try_spawn_hunter(Hunter hunters[], Swallow *s, int fc, int tf, int freq, in
     spawn_vectors(h, s);
 }
 
+// Uruchomienie ataku (szarży)
 void execute_dash_launch(Hunter *h, Swallow *s)
 {
     float tx = s->x - h->x;
     float ty = s->y - h->y;
     float dist = sqrt(tx * tx + ty * ty);
-    float dash_speed = 1.5f;
+    float dash_speed = HUNTER_DASH_SPEED;
     if (dist > 0)
     {
         h->dx = (tx / dist) * dash_speed;
@@ -100,6 +106,7 @@ void execute_dash_launch(Hunter *h, Swallow *s)
     h->has_dashed = 1;
 }
 
+// Logika odbijania od ścian
 void check_bounce_logic(Hunter *h, Swallow *s, int hx, int hy)
 {
     if (h->has_dashed)
@@ -131,6 +138,7 @@ void check_bounce_logic(Hunter *h, Swallow *s, int hx, int hy)
     }
 }
 
+// Rysowanie wroga na ekranie
 void draw_hunter(WINDOW *win, Hunter *h)
 {
     wattron(win, COLOR_PAIR(h->color_pair));
@@ -140,7 +148,7 @@ void draw_hunter(WINDOW *win, Hunter *h)
     wattroff(win, COLOR_PAIR(h->color_pair));
 }
 
-// Funkcja pomocnicza: Sprawdzanie kolizji
+// Sprawdzanie kolizji z obiektami
 static int check_hunter_collisions(Hunter *h, Swallow *s, SafeZone *sz, int dmg)
 {
     // Safe Zone
@@ -153,7 +161,7 @@ static int check_hunter_collisions(Hunter *h, Swallow *s, SafeZone *sz, int dmg)
             (int)h->y <= zb && (int)h->y + h->height >= zt)
         {
             h->is_active = 0;
-            return 1; // Usunięty przez strefę
+            return 1;
         }
     }
     // Player
@@ -164,11 +172,12 @@ static int check_hunter_collisions(Hunter *h, Swallow *s, SafeZone *sz, int dmg)
         if (s->lifeForce > 0)
             s->lifeForce -= dmg;
         h->is_active = 0;
-        return 1; // Usunięty po trafieniu
+        return 1;
     }
     return 0;
 }
 
+// Aktualizacja pojedynczego wroga
 void update_single_hunter(WINDOW *win, Hunter *h, Swallow *s, int dmg, SafeZone *sz)
 {
     if (h->dash_wait_timer > 0)
@@ -179,16 +188,14 @@ void update_single_hunter(WINDOW *win, Hunter *h, Swallow *s, int dmg, SafeZone 
         draw_hunter(win, h);
         return;
     }
-    // Wymazywanie
+
     for (int ry = 0; ry < h->height; ry++)
         for (int rx = 0; rx < h->width; rx++)
             mvwprintw(win, (int)h->y + ry, (int)h->x + rx, " ");
 
-    // Ruch
     h->x += h->dx;
     h->y += h->dy;
 
-    // Ściany
     int hx = (h->x <= 1) || (h->x + h->width >= GAME_SCREEN_WIDTH - 1);
     int hy = (h->y <= 1) || (h->y + h->height >= GAME_SCREEN_HEIGHT - 1);
     if (hx)
@@ -212,6 +219,7 @@ void update_single_hunter(WINDOW *win, Hunter *h, Swallow *s, int dmg, SafeZone 
     draw_hunter(win, h);
 }
 
+// Pętla aktualizacji wszystkich wrogów
 void update_hunters(WINDOW *win, Hunter hunters[], Swallow *s, int dmg, SafeZone *sz)
 {
     for (int i = 0; i < MAX_HUNTERS_LIMIT; i++)

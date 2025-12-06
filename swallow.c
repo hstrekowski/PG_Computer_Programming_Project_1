@@ -1,18 +1,20 @@
 #include "swallow.h"
 
+// Ustawienie początkowe gracza
 void init_swallow(Swallow *swallow)
 {
     swallow->x = GAME_SCREEN_WIDTH / 2;
     swallow->y = GAME_SCREEN_HEIGHT - 3;
     swallow->direction = UP;
-    swallow->sign = UP_SIGN;
-    swallow->speed = 1;
-    swallow->lifeForce = 3;
+    swallow->sign = SWALLOW_ANIM_UP_FLAP;
+    swallow->speed = SWALLOW_INIT_SPEED;
+    swallow->lifeForce = SWALLOW_INIT_LIVES;
     swallow->minSpeedLimit = 1;
     swallow->maxSpeedLimit = 5;
     swallow->anim_ticker = 0;
 }
 
+// Przetwarzanie klawiszy ruchu
 int handle_input(Swallow *swallow, int ch)
 {
     switch (ch)
@@ -50,24 +52,25 @@ int handle_input(Swallow *swallow, int ch)
     return 0;
 }
 
+// Pobieranie animowanego znaku
 char *get_animated_sign(int direction, int ticker)
 {
     int flap = (ticker / 5) % 2;
     switch (direction)
     {
     case UP:
-        return flap ? "^" : "-";
+        return flap ? SWALLOW_ANIM_UP_FLAP : SWALLOW_ANIM_UP_GLIDE;
     case DOWN:
-        return flap ? "v" : "W";
+        return flap ? SWALLOW_ANIM_DOWN_FLAP : SWALLOW_ANIM_DOWN_GLIDE;
     case LEFT:
-        return flap ? "<" : "{";
+        return flap ? SWALLOW_ANIM_LEFT_FLAP : SWALLOW_ANIM_LEFT_GLIDE;
     case RIGHT:
-        return flap ? ">" : "}";
+        return flap ? SWALLOW_ANIM_RIGHT_FLAP : SWALLOW_ANIM_RIGHT_GLIDE;
     }
-    return "^";
+    return SWALLOW_ANIM_UP_FLAP;
 }
 
-// Funkcja pomocnicza: Oblicza pozycję i odbicia
+// Obliczanie następnej pozycji gracza
 static void calculate_next_pos(Swallow *s)
 {
     switch (s->direction)
@@ -89,29 +92,29 @@ static void calculate_next_pos(Swallow *s)
     {
         s->y = 2;
         s->direction = DOWN;
-        s->sign = DOWN_SIGN;
+        s->sign = SWALLOW_ANIM_DOWN_FLAP;
     }
     else if (s->y > GAME_SCREEN_HEIGHT - 2)
     {
         s->y = GAME_SCREEN_HEIGHT - 3;
         s->direction = UP;
-        s->sign = UP_SIGN;
+        s->sign = SWALLOW_ANIM_UP_FLAP;
     }
     else if (s->x < 1)
     {
         s->x = 2;
         s->direction = RIGHT;
-        s->sign = RIGHT_SIGN;
+        s->sign = SWALLOW_ANIM_RIGHT_FLAP;
     }
     else if (s->x > GAME_SCREEN_WIDTH - 2)
     {
         s->x = GAME_SCREEN_WIDTH - 3;
         s->direction = LEFT;
-        s->sign = LEFT_SIGN;
+        s->sign = SWALLOW_ANIM_LEFT_FLAP;
     }
 }
 
-// Funkcja pomocnicza: Rysowanie
+// Rysowanie postaci z kolorem
 static void draw_swallow_visuals(WINDOW *win, Swallow *s)
 {
     s->sign = get_animated_sign(s->direction, s->anim_ticker);
@@ -126,12 +129,13 @@ static void draw_swallow_visuals(WINDOW *win, Swallow *s)
     wattroff(win, COLOR_PAIR(color));
 }
 
+// Główna pętla ruchu gracza
 void update_swallow_position(WINDOW *gameScreen, Swallow *s, int *move_counter)
 {
     s->anim_ticker++;
     if (*move_counter <= 0)
     {
-        mvwprintw(gameScreen, s->y, s->x, " "); // Wyczyść stare
+        mvwprintw(gameScreen, s->y, s->x, " ");
         calculate_next_pos(s);
         draw_swallow_visuals(gameScreen, s);
 
@@ -141,7 +145,6 @@ void update_swallow_position(WINDOW *gameScreen, Swallow *s, int *move_counter)
     }
     else
     {
-        // Animacja w miejscu
         draw_swallow_visuals(gameScreen, s);
     }
 }

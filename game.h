@@ -3,7 +3,7 @@
 
 #include <ncurses.h>
 
-// Stałe ekranu
+// Definicje stałych rozmiarów okien
 #define WINDOW_HEIGHT 40
 #define WINDOW_WIDTH 134
 #define GAME_SCREEN_HEIGHT 29
@@ -11,24 +11,20 @@
 #define STATUS_AREA_HEIGHT 9
 #define STATUS_AREA_WIDTH 132
 
-// Stałe kierunków i znaków
+// Stałe sterowania
 #define UP 99
 #define DOWN 98
 #define LEFT 97
 #define RIGHT 96
-#define UP_SIGN "^"
-#define DOWN_SIGN "v"
-#define LEFT_SIGN "<"
-#define RIGHT_SIGN ">"
 
-// Limity i ustawienia
+// Limity gry i ustawienia
 #define MAX_STARS_LIMIT 200
 #define MAX_HUNTERS_LIMIT 50
 #define FRAME_RATE 45
 #define BASE_MOVE_RATE 10
-#define TOP_N 5 //
+#define TOP_N 5
 
-// Kolory
+// Definicje par kolorów
 #define PAIR_WHITE 1
 #define PAIR_ORANGE 2
 #define PAIR_RED 3
@@ -37,7 +33,34 @@
 #define PAIR_HUNTER_MAGENTA 6
 #define PAIR_HUNTER_BLUE 7
 
-// Struktury
+// Znaki Animacji Jaskółki
+#define SWALLOW_ANIM_UP_FLAP "^"
+#define SWALLOW_ANIM_UP_GLIDE "-"
+#define SWALLOW_ANIM_DOWN_FLAP "v"
+#define SWALLOW_ANIM_DOWN_GLIDE "-"
+#define SWALLOW_ANIM_LEFT_FLAP "<"
+#define SWALLOW_ANIM_LEFT_GLIDE "{"
+#define SWALLOW_ANIM_RIGHT_FLAP ">"
+#define SWALLOW_ANIM_RIGHT_GLIDE "}"
+
+// Ustawienia Jaskółki
+#define SWALLOW_INIT_LIVES 3
+#define SWALLOW_INIT_SPEED 1
+
+// Znaki Gwiazd
+#define STAR_CHAR_NORMAL "*"
+#define STAR_CHAR_AGING "+"
+
+// Ustawienia Safe Zone
+#define ZONE_CHAR_ACTIVE "O"
+#define ZONE_CHAR_INACTIVE " "
+#define BLINK_SLEEP_US 60000
+#define BLINK_REPEAT_COUNT 3
+
+// Ustawienia Huntera
+#define HUNTER_DASH_SPEED 1.2f
+
+// Główne struktury danych gry
 typedef struct Stats
 {
     int score;
@@ -83,7 +106,7 @@ typedef struct ScoreEntry
 
 struct Swallow;
 
-// Funkcje ogólne
+// Deklaracje funkcji głównych
 void refresh_windows(WINDOW *windows[], int n);
 void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, struct Swallow *swallow, PlayerConfig *config);
 

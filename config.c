@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+// Ustawienie domyślnych parametrów poziomu
 void set_defaults(LevelConfig *cfg, int level)
 {
     cfg->levelNumber = level;
@@ -19,6 +20,7 @@ void set_defaults(LevelConfig *cfg, int level)
         cfg->allowedHunterTypes[i] = 1;
 }
 
+// Parsowanie pojedynczej linii pliku
 void parse_line(FILE *f, LevelConfig *cfg)
 {
     char key[50];
@@ -48,6 +50,7 @@ void parse_line(FILE *f, LevelConfig *cfg)
     }
 }
 
+// Otwarcie pliku i wczytanie
 int load_level_config(int level, LevelConfig *lvlConfig)
 {
     char filename[50];
@@ -65,7 +68,7 @@ int load_level_config(int level, LevelConfig *lvlConfig)
     return 1;
 }
 
-// Funkcja pomocnicza: Rysowanie formularza
+// Pomocnicze rysowanie formularza UI
 static void draw_start_form(WINDOW *win, int box_w)
 {
     box(win, 0, 0);
@@ -83,6 +86,7 @@ static void draw_start_form(WINDOW *win, int box_w)
     wrefresh(win);
 }
 
+// Główna logika ekranu startowego
 void show_start_screen(WINDOW *gameScreen, PlayerConfig *config)
 {
     echo();

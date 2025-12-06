@@ -3,10 +3,10 @@
 
 #include "game.h"
 
-// Wczytuje konfigurację z pliku levelX.txt
+// Wczytywanie konfiguracji poziomu
 int load_level_config(int level, LevelConfig *lvlConfig);
 
-// Wyświetla formularz startowy (Nick i Level)
+// Wyświetlanie ekranu startowego
 void show_start_screen(WINDOW *gameScreen, PlayerConfig *config);
 
 #endif

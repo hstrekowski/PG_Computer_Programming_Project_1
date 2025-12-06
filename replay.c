@@ -4,6 +4,7 @@
 #include <unistd.h>
 #include <string.h>
 
+// Alokacja pamięci dla powtórki
 void init_replay(ReplaySystem *r)
 {
     r->frames = (ReplayFrame *)malloc(sizeof(ReplayFrame) * MAX_REPLAY_FRAMES);
@@ -11,6 +12,7 @@ void init_replay(ReplaySystem *r)
     r->max_frames = MAX_REPLAY_FRAMES;
 }
 
+// Zwalnianie pamięci powtórki
 void free_replay(ReplaySystem *r)
 {
     if (r->frames)
@@ -20,6 +22,7 @@ void free_replay(ReplaySystem *r)
     }
 }
 
+// Zapis stanu do klatki
 void record_frame(ReplaySystem *r, Swallow *s, Star stars[], Hunter hunters[], SafeZone *sz, Stats *st, int lives, int f_left)
 {
     if (r->frame_count >= r->max_frames)
@@ -35,7 +38,7 @@ void record_frame(ReplaySystem *r, Swallow *s, Star stars[], Hunter hunters[], S
     r->frame_count++;
 }
 
-// Helper: Odtwarzanie logiki animacji gwiazdy
+// Pomocnicze rysowanie gwiazdy w replayu
 static void draw_replay_star(WINDOW *win, Star *s)
 {
     int speed_factor = 20 - (int)(s->y / 1.5);
@@ -51,15 +54,14 @@ static void draw_replay_star(WINDOW *win, Star *s)
     int current_color;
     char *sign;
 
-    // Używamy zapisanego anim_ticker, aby odtworzyć fazę mrugania
     if ((s->anim_ticker / speed_factor) % 2 == 0)
     {
-        sign = "*";
+        sign = STAR_CHAR_NORMAL;
         current_color = PAIR_WHITE;
     }
     else
     {
-        sign = "+";
+        sign = STAR_CHAR_AGING;
         current_color = age_color;
     }
 
@@ -68,13 +70,13 @@ static void draw_replay_star(WINDOW *win, Star *s)
     wattroff(win, COLOR_PAIR(current_color));
 }
 
+// Rysowanie całej sceny z klatki
 static void render_replay_scene(WINDOW *win, ReplayFrame *f)
 {
     wclear(win);
     box(win, 0, 0);
     draw_safe_zone(win, &f->safeZone);
 
-    // Jaskółka
     int color = PAIR_WHITE;
     if (f->safeZone.is_active || f->safeZone.duration_timer > 0)
         color = PAIR_ORANGE;
@@ -87,14 +89,12 @@ static void render_replay_scene(WINDOW *win, ReplayFrame *f)
     mvwprintw(win, f->swallow.y, f->swallow.x, "%s", f->swallow.sign);
     wattroff(win, COLOR_PAIR(color));
 
-    // Gwiazdy - używamy helpera
     for (int j = 0; j < MAX_STARS_LIMIT; j++)
     {
         if (f->stars[j].is_active)
             draw_replay_star(win, &f->stars[j]);
     }
 
-    // Hunterzy
     for (int j = 0; j < MAX_HUNTERS_LIMIT; j++)
     {
         if (f->hunters[j].is_active)
@@ -110,11 +110,12 @@ static void render_replay_scene(WINDOW *win, ReplayFrame *f)
     wrefresh(win);
 }
 
+// Odtwarzanie nagranej rozgrywki
 void play_replay(ReplaySystem *r, WINDOW *gameWin, WINDOW *statWin, PlayerConfig *p, LevelConfig *l)
 {
     const int SLEEP = 1000000 / FRAME_RATE;
     nodelay(gameWin, TRUE);
-    int was_active = 0; // Stan strefy w poprzedniej klatce
+    int was_active = 0;
 
     for (int i = 0; i < r->frame_count; i++)
     {
@@ -122,11 +123,8 @@ void play_replay(ReplaySystem *r, WINDOW *gameWin, WINDOW *statWin, PlayerConfig
             break;
         ReplayFrame *f = &r->frames[i];
 
-        // Wykrywanie momentu aktywacji (Blink Effect)
         if (f->safeZone.is_active && !was_active)
-        {
             blink_effect(gameWin);
-        }
         was_active = f->safeZone.is_active;
 
         render_replay_scene(gameWin, f);

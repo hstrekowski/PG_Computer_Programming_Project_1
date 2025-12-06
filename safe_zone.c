@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+// Ustawienie wartości początkowych strefy
 void init_safe_zone(SafeZone *sz)
 {
     sz->is_active = 0;
@@ -12,25 +13,26 @@ void init_safe_zone(SafeZone *sz)
     sz->game_start_timer = 0;
 }
 
-// ZMIANA: Usunięto 'static', teraz funkcja jest publiczna
+// Efekt wizualny mrugania tłem
 void blink_effect(WINDOW *win)
 {
-    for (int i = 0; i < 3; i++)
+    for (int i = 0; i < BLINK_REPEAT_COUNT; i++)
     {
         wbkgd(win, COLOR_PAIR(PAIR_ORANGE) | A_REVERSE);
         wrefresh(win);
-        usleep(60000);
+        usleep(BLINK_SLEEP_US);
         wbkgd(win, COLOR_PAIR(0));
         wrefresh(win);
-        usleep(60000);
+        usleep(BLINK_SLEEP_US);
     }
 }
 
+// Aktywacja logiki bezpiecznej strefy
 void activate_zone(SafeZone *sz, Swallow *swallow, WINDOW *win)
 {
     if (sz->game_start_timer > 5 * FRAME_RATE && sz->cooldown_timer <= 0)
     {
-        blink_effect(win); // Wywołanie efektu
+        blink_effect(win);
 
         sz->is_active = 1;
         sz->duration_timer = 5 * FRAME_RATE;
@@ -40,16 +42,18 @@ void activate_zone(SafeZone *sz, Swallow *swallow, WINDOW *win)
         swallow->x = sz->x;
         swallow->y = sz->y;
         swallow->direction = UP;
-        swallow->sign = UP_SIGN;
+        swallow->sign = SWALLOW_ANIM_UP_FLAP;
     }
 }
 
+// Sprawdzenie czy wciśnięto przycisk strefy
 void handle_safe_zone_input(SafeZone *sz, Swallow *swallow, int ch, WINDOW *win)
 {
     if (ch == 't' || ch == 'T')
         activate_zone(sz, swallow, win);
 }
 
+// Aktualizacja timerów odliczających czas
 void update_safe_zone(SafeZone *sz)
 {
     sz->game_start_timer++;
@@ -63,12 +67,13 @@ void update_safe_zone(SafeZone *sz)
     }
 }
 
+// Rysowanie obszaru bezpiecznej strefy
 void draw_safe_zone(WINDOW *win, SafeZone *sz)
 {
     if (!sz->is_active && sz->duration_timer < 0)
         return;
     int radius = 1;
-    char *pixel = sz->is_active ? "O" : " ";
+    char *pixel = sz->is_active ? ZONE_CHAR_ACTIVE : ZONE_CHAR_INACTIVE;
     int pair = sz->is_active ? PAIR_ORANGE : 0;
 
     if (sz->is_active)
