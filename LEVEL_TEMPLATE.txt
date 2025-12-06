@@ -1,0 +1,10 @@
+LEVEL 1                 # Numer poziomu
+DURATION 60             # Czas trwania poziomu w sekundach
+MAX_STARS 50            # Limit gwiazdek na ekranie
+MAX_HUNTERS 5           # Limit przeciwników
+STAR_FREQ 15            # Częstotliwość spawnu gwiazd (klatki)
+HUNTER_FREQ 100         # Częstotliwość spawnu wrogów (klatki)
+HUNTER_DAMAGE 1         # Obrażenia zadawane przez wroga
+STAR_GOAL 10            # Ilość gwiazdek potrzebna do wygrania
+SPEED_LIMITS 1 5        # Min/Max prędkość gracza
+HUNTER_TYPES 1 1 1 1 1  # Dozwolone typy wrogów (0 - wył, 1 - wł)
