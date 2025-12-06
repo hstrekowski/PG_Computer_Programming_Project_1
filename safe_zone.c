@@ -1,5 +1,6 @@
 #include "safe_zone.h"
 #include <stdlib.h>
+#include <unistd.h>
 
 void init_safe_zone(SafeZone *sz)
 {
@@ -15,6 +16,22 @@ void activate_zone(SafeZone *sz, Swallow *swallow, WINDOW *win)
 {
     if (sz->game_start_timer > 5 * FRAME_RATE && sz->cooldown_timer <= 0)
     {
+        // === EFEKT BLINK START ===
+        // Mrugamy 3 razy bardzo szybko
+        for (int i = 0; i < 3; i++)
+        {
+            // Ustawiamy tło na żółte (PAIR_ORANGE + A_REVERSE daje żółte tło)
+            wbkgd(win, COLOR_PAIR(PAIR_ORANGE) | A_REVERSE);
+            wrefresh(win);
+            usleep(60000); // 60ms pauzy (bardzo krótko)
+
+            // Wracamy do normy (brak koloru)
+            wbkgd(win, COLOR_PAIR(0));
+            wrefresh(win);
+            usleep(60000); // 60ms pauzy
+        }
+        // === EFEKT BLINK KONIEC ===
+
         sz->is_active = 1;
         sz->duration_timer = 5 * FRAME_RATE;
         sz->cooldown_timer = 30 * FRAME_RATE;
