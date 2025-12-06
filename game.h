@@ -56,9 +56,14 @@
 #define ZONE_CHAR_INACTIVE " "
 #define BLINK_SLEEP_US 60000
 #define BLINK_REPEAT_COUNT 3
+#define ZONE_COOLDOWN 30
+#define ZONE_START_COOLDOWN 5
+#define ZONE_RADIUS 1
 
 // Ustawienia Huntera
 #define HUNTER_DASH_SPEED 1.2f
+#define HUNTER_DASH_TOLERANCE 0.99
+#define HUNTER_BASE_DASH_WAIT_TIMER 22
 
 // Główne struktury danych gry
 typedef struct Stats

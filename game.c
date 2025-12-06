@@ -37,6 +37,7 @@ void refresh_windows(WINDOW *windows[], int n)
 // Inicjalizacja stanu nowej gry
 int init_game_state(GameState *g, Swallow *s, PlayerConfig *p, WINDOW *win)
 {
+    // Jeżeli wczytanie configu z pliku sie nie powiedzie wypisze ERROR
     if (!load_level_config(p->startLevel, &g->lvl))
     {
         wclear(win);
@@ -50,6 +51,7 @@ int init_game_state(GameState *g, Swallow *s, PlayerConfig *p, WINDOW *win)
         return 0;
     }
 
+    // Ustawianie limitów prędkości według danych w pliku .txt
     s->minSpeedLimit = g->lvl.minSpeed;
     s->maxSpeedLimit = g->lvl.maxSpeed;
     if (s->speed < s->minSpeedLimit)
@@ -57,6 +59,7 @@ int init_game_state(GameState *g, Swallow *s, PlayerConfig *p, WINDOW *win)
     if (s->speed > s->maxSpeedLimit)
         s->speed = s->maxSpeedLimit;
 
+    // Ustawienie reszty danych gry
     g->stats.score = 0;
     g->stats.starsFumbled = 0;
     g->frames = g->lvl.durationSeconds * FRAME_RATE;
@@ -65,11 +68,13 @@ int init_game_state(GameState *g, Swallow *s, PlayerConfig *p, WINDOW *win)
     g->move_ctr = BASE_MOVE_RATE;
     g->star_idx = 0;
 
+    // Inicjalizacja safe_zone, gwiazdek i hunterów
     init_safe_zone(&g->sz);
     init_stars(g->stars);
     init_hunters(g->hunters);
     srand(time(NULL));
 
+    // Wypisanie startowej pozycji gracza
     wattron(win, COLOR_PAIR(PAIR_WHITE));
     mvwprintw(win, s->y, s->x, "%s", s->sign);
     wattroff(win, COLOR_PAIR(PAIR_WHITE));
@@ -83,6 +88,7 @@ int process_input(WINDOW *win, Swallow *s, GameState *g)
     int ch = wgetch(win);
     handle_safe_zone_input(&g->sz, s, ch, win);
 
+    // Dodatkowa obsługa na uruchemienie safe_zone
     if (ch != ERR && ch != 't' && ch != 'T')
     {
         if (!g->sz.is_active)
@@ -102,7 +108,8 @@ int process_input(WINDOW *win, Swallow *s, GameState *g)
 // Aktualizacja logiki obiektów gry
 void process_logic(GameState *g, Swallow *s, WINDOW *win)
 {
-    if (g->sz.is_active)
+
+    if (g->sz.is_active) // Jeżeli safe_zone uruchomiony to przemieszczamy gracza do safe_zone
     {
         s->x = g->sz.x;
         s->y = g->sz.y;
@@ -110,11 +117,12 @@ void process_logic(GameState *g, Swallow *s, WINDOW *win)
         mvwprintw(win, s->y, s->x, "%s", s->sign);
         wattroff(win, COLOR_PAIR(PAIR_ORANGE));
     }
-    else
+    else // Jeżeli safe_zone nie jest uruchomiony to standardowa aktualizacja pozycji gracza
     {
         update_swallow_position(win, s, &g->move_ctr);
     }
 
+    // Logika pojawiania sie gwiazdek i hunterów
     try_spawn_star(g->stars, &g->star_idx, g->fc, g->lvl.starFreq, g->lvl.maxStars);
     update_stars(win, g->stars, s, &g->stats);
 
@@ -136,12 +144,13 @@ void process_render(WINDOW *win, WINDOW *stat, GameState *g, Swallow *s, PlayerC
 // Obsługa końca gry i powtórek
 void handle_game_over(WINDOW *win, WINDOW *statArea, GameState *g, Swallow *s, PlayerConfig *p, ReplaySystem *replay, int quit)
 {
+    // Gracz wygrał jeżeli ma życia, dobił cel i  nie wyszedł za pomoca q/Q
     int won = (s->lifeForce > 0 && g->stats.score >= g->lvl.starGoal && !quit);
     int final_score = 0;
     ScoreEntry top[TOP_N];
     int count = 0;
 
-    if (won)
+    if (won) // Jeżeli wygrał to kalkulujemy wynik i zapisujemy go w pliku .txt
     {
         final_score = calculate_final_score(&g->stats, s->lifeForce, g->frames, g->lvl.levelNumber);
         save_score(p->name, final_score, g->lvl.levelNumber);
@@ -150,6 +159,7 @@ void handle_game_over(WINDOW *win, WINDOW *statArea, GameState *g, Swallow *s, P
 
     draw_game_over(win, p, final_score, won, top, count, quit);
     nodelay(win, FALSE);
+    // Tak długo aż użytkownik nie wdusi q/Q gra będzie pytała czy chce objerzec powtórkę
     while (1)
     {
         int ch = wgetch(win);
@@ -167,7 +177,7 @@ void handle_game_over(WINDOW *win, WINDOW *statArea, GameState *g, Swallow *s, P
 void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, PlayerConfig *config)
 {
     GameState g;
-    if (!init_game_state(&g, swallow, config, gameScreen))
+    if (!init_game_state(&g, swallow, config, gameScreen)) // Jeżeli nie udała się wczytać podstawowych danych do urchomienia gry to konczymy grę
         return;
 
     ReplaySystem replay;
@@ -176,17 +186,18 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, Pla
     draw_status(statusArea, config, &g.lvl, &g.stats, swallow->lifeForce, g.frames / FRAME_RATE, swallow->speed, &g.sz);
 
     int user_quit = 0;
-    while (g.frames > 0 && swallow->lifeForce > 0)
+    while (g.frames > 0 && swallow->lifeForce > 0) // Dopóki czas (liczba dostępnych klatek) i liczba żyć jest większa od 0 to oznacza że gramy dalej
     {
-        if (process_input(gameScreen, swallow, &g))
+        if (process_input(gameScreen, swallow, &g)) // Jeżeli użytkownik nadusi q/Q to gra sie skonczy
         {
             user_quit = 1;
             break;
         }
+
         process_logic(&g, swallow, gameScreen);
         record_frame(&replay, swallow, g.stars, g.hunters, &g.sz, &g.stats, swallow->lifeForce, g.frames);
 
-        if (g.stats.score >= g.lvl.starGoal)
+        if (g.stats.score >= g.lvl.starGoal) // Jeżeli gracz osiagnal cel gwiazdek kończymy
         {
             process_render(gameScreen, statusArea, &g, swallow, config);
             usleep(500000);

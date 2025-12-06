@@ -25,8 +25,10 @@ void free_replay(ReplaySystem *r)
 // Zapis stanu do klatki
 void record_frame(ReplaySystem *r, Swallow *s, Star stars[], Hunter hunters[], SafeZone *sz, Stats *st, int lives, int f_left)
 {
-    if (r->frame_count >= r->max_frames)
+    if (r->frame_count >= r->max_frames) // Jeżeli osięgnieliśmy limit to konczymy
         return;
+
+    // ZAPISANIE WSZYSTKICH DANYCH Z AKTUALNEJ KLATKI
     ReplayFrame *f = &r->frames[r->frame_count];
     f->swallow = *s;
     f->safeZone = *sz;

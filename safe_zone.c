@@ -30,13 +30,13 @@ void blink_effect(WINDOW *win)
 // Aktywacja logiki bezpiecznej strefy
 void activate_zone(SafeZone *sz, Swallow *swallow, WINDOW *win)
 {
-    if (sz->game_start_timer > 5 * FRAME_RATE && sz->cooldown_timer <= 0)
+    if (sz->game_start_timer > ZONE_START_COOLDOWN * FRAME_RATE && sz->cooldown_timer <= 0)
     {
         blink_effect(win);
 
         sz->is_active = 1;
-        sz->duration_timer = 5 * FRAME_RATE;
-        sz->cooldown_timer = 30 * FRAME_RATE;
+        sz->duration_timer = ZONE_START_COOLDOWN * FRAME_RATE;
+        sz->cooldown_timer = ZONE_COOLDOWN * FRAME_RATE;
         mvwprintw(win, swallow->y, swallow->x, " ");
 
         swallow->x = sz->x;
@@ -72,7 +72,7 @@ void draw_safe_zone(WINDOW *win, SafeZone *sz)
 {
     if (!sz->is_active && sz->duration_timer < 0)
         return;
-    int radius = 1;
+    int radius = ZONE_RADIUS;
     char *pixel = sz->is_active ? ZONE_CHAR_ACTIVE : ZONE_CHAR_INACTIVE;
     int pair = sz->is_active ? PAIR_ORANGE : 0;
 
