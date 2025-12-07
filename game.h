@@ -21,8 +21,10 @@
 #define MAX_STARS_LIMIT 200
 #define MAX_HUNTERS_LIMIT 50
 #define FRAME_RATE 45
+#define BASE_SLEEP_TIME 1000000
 #define BASE_MOVE_RATE 10
 #define TOP_N 5
+#define MAX_NICKNAME_LENGTH 30
 
 // Definicje par kolorów
 #define PAIR_WHITE 1
@@ -43,6 +45,11 @@
 #define SWALLOW_ANIM_RIGHT_FLAP ">"
 #define SWALLOW_ANIM_RIGHT_GLIDE "}"
 
+// Ustawienia do kalkulacji punktów
+#define TIME_MULTIPLIER 10
+#define STAR_MULTIPLIER 100
+#define LIVE_MULTIPLIER 300
+#define LVL_MULTIPLIER 0.1f
 // Ustawienia Jaskółki
 #define SWALLOW_INIT_LIVES 3
 #define SWALLOW_INIT_SPEED 1
@@ -63,6 +70,7 @@
 #define ZONE_ANIMATION_DELAY 10000
 
 // Ustawienia Huntera
+#define HUNTER_TYPES_MAX 5
 #define HUNTER_DASH_SPEED 1.2f
 #define HUNTER_DASH_TOLERANCE 0.99
 #define HUNTER_BASE_DASH_WAIT_TIMER 22
@@ -76,7 +84,7 @@ typedef struct Stats
 
 typedef struct PlayerConfig
 {
-    char name[30];
+    char name[MAX_NICKNAME_LENGTH];
     int startLevel;
 } PlayerConfig;
 
@@ -91,7 +99,7 @@ typedef struct LevelConfig
     int hunterDamage;
     int minSpeed;
     int maxSpeed;
-    int allowedHunterTypes[5];
+    int allowedHunterTypes[HUNTER_TYPES_MAX];
     int starGoal;
 } LevelConfig;
 
@@ -106,7 +114,7 @@ typedef struct SafeZone
 
 typedef struct ScoreEntry
 {
-    char name[30];
+    char name[MAX_NICKNAME_LENGTH];
     int score;
     int level;
 } ScoreEntry;

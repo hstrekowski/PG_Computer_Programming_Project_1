@@ -91,6 +91,7 @@ int process_input(WINDOW *win, Swallow *s, GameState *g)
     // Dodatkowa obsługa na uruchemienie safe_zone
     if (ch != ERR && ch != 't' && ch != 'T')
     {
+        // Jeżeli safe_zone nie jest aktywny, normalna obsługa wejścia
         if (!g->sz.is_active)
         {
             if (handle_input(s, ch))
@@ -98,6 +99,7 @@ int process_input(WINDOW *win, Swallow *s, GameState *g)
         }
         else
         {
+            // Wyjście na Q
             if (ch == 'q' || ch == 'Q')
                 return 1;
         }
@@ -182,7 +184,7 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, Pla
 
     ReplaySystem replay;
     init_replay(&replay);
-    const int SLEEP = 1000000 / FRAME_RATE;
+    const int SLEEP = BASE_SLEEP_TIME / FRAME_RATE;
     draw_status(statusArea, config, &g.lvl, &g.stats, swallow->lifeForce, g.frames / FRAME_RATE, swallow->speed, &g.sz);
 
     int user_quit = 0;
@@ -200,7 +202,7 @@ void run_game_loop(WINDOW *gameScreen, WINDOW *statusArea, Swallow *swallow, Pla
         if (g.stats.score >= g.lvl.starGoal) // Jeżeli gracz osiagnal cel gwiazdek kończymy
         {
             process_render(gameScreen, statusArea, &g, swallow, config);
-            usleep(500000);
+            usleep(BASE_SLEEP_TIME / 2);
             break;
         }
         process_render(gameScreen, statusArea, &g, swallow, config);

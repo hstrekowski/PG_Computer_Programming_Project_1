@@ -6,10 +6,10 @@
 // Formuła obliczania punktów końcowych
 int calculate_final_score(Stats *s, int lives, int frames_left, int level_num)
 {
-    int time_bonus = (frames_left / FRAME_RATE) * 10;
-    int base_score = (s->score * 100) + (lives * 300) + time_bonus;
+    int time_bonus = (frames_left / FRAME_RATE) * TIME_MULTIPLIER;
+    int base_score = (s->score * STAR_MULTIPLIER) + (lives * LIVE_MULTIPLIER) + time_bonus;
 
-    float multiplier = 1.0f + (level_num * 0.1f);
+    float multiplier = 1.0f + (level_num * LVL_MULTIPLIER);
     return (int)(base_score * multiplier);
 }
 

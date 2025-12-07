@@ -16,7 +16,7 @@ void set_defaults(LevelConfig *cfg, int level)
     cfg->minSpeed = 1;
     cfg->maxSpeed = 5;
     cfg->starGoal = 10;
-    for (int i = 0; i < 5; i++)
+    for (int i = 0; i < HUNTER_TYPES_MAX; i++)
         cfg->allowedHunterTypes[i] = 1;
 }
 
@@ -45,7 +45,7 @@ void parse_line(FILE *f, LevelConfig *cfg)
         fscanf(f, "%d %d", &cfg->minSpeed, &cfg->maxSpeed);
     else if (strcmp(key, "HUNTER_TYPES") == 0)
     {
-        for (int i = 0; i < 5; i++)
+        for (int i = 0; i < HUNTER_TYPES_MAX; i++)
             fscanf(f, "%d", &cfg->allowedHunterTypes[i]);
     }
 }

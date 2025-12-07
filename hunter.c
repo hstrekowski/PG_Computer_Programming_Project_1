@@ -19,9 +19,9 @@ int get_dynamic_limit(int max, int current_frame, int total)
     // Kalkulowanie limitu hunterów w zależności od czasu
     int rem = total - current_frame;
     int limit = max;
-    if (rem <= total / 4)
+    if (rem <= total / 4) // Dzielenie przez 4 (25% czasu)
         limit += 2;
-    else if (rem <= total / 2)
+    else if (rem <= total / 2) // Dzielenie przez 2 (50% czasu)
         limit += 1;
     return (limit > MAX_HUNTERS_LIMIT) ? MAX_HUNTERS_LIMIT : limit;
 }

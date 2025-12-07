@@ -14,7 +14,7 @@ void init_safe_zone(SafeZone *sz)
     sz->game_start_timer = 0;
 }
 
-// Przy uzyciu safe_zone ekran miga na zolto
+// Przy uzyciu safe_zone ekran miga na zółto
 void blink_effect(WINDOW *win)
 {
     for (int i = 0; i < BLINK_REPEAT_COUNT; i++)
