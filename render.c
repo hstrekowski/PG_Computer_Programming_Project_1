@@ -38,22 +38,22 @@ void draw_zone_status(WINDOW *win, SafeZone *sz)
     if (sz->is_active)
     {
         wattron(win, COLOR_PAIR(PAIR_HUNTER_BLUE));
-        mvwprintw(win, 5, 85, "ZONE: ACTIVE %ds ", (sz->duration_timer / FRAME_RATE) + 1);
+        mvwprintw(win, 6, 55, "ZONE: ACTIVE %ds ", (sz->duration_timer / FRAME_RATE) + 1);
         wattroff(win, COLOR_PAIR(PAIR_HUNTER_BLUE));
     }
     else if (sz->cooldown_timer > 0)
     {
-        mvwprintw(win, 5, 85, "ZONE: WAIT %ds  ", (sz->cooldown_timer / FRAME_RATE) + 1);
+        mvwprintw(win, 6, 55, "ZONE: WAIT %ds  ", (sz->cooldown_timer / FRAME_RATE) + 1);
     }
-    else if (sz->game_start_timer > 5 * FRAME_RATE)
+    else if (sz->game_start_timer > ZONE_START_COOLDOWN * FRAME_RATE)
     {
         wattron(win, COLOR_PAIR(PAIR_HUNTER_GREEN));
-        mvwprintw(win, 5, 85, "ZONE: READY!    ");
+        mvwprintw(win, 6, 55, "ZONE: READY!    ");
         wattroff(win, COLOR_PAIR(PAIR_HUNTER_GREEN));
     }
     else
     {
-        mvwprintw(win, 5, 85, "ZONE: LOCKED    ");
+        mvwprintw(win, 6, 55, "ZONE: LOCKED    ");
     }
 }
 
@@ -68,11 +68,11 @@ void draw_status(WINDOW *win, PlayerConfig *p, LevelConfig *l, Stats *s, int liv
     mvwprintw(win, 5, 2, "[ CONTROLS ]");
     mvwprintw(win, 5, 20, "W/S/A/D - Move");
     mvwprintw(win, 5, 55, "T - SAFE ZONE");
+    draw_zone_status(win, sz);
     mvwprintw(win, 6, 20, "O/P - Speed");
     wattron(win, COLOR_PAIR(PAIR_RED));
     mvwprintw(win, 6, 90, "Q - QUIT");
     wattroff(win, COLOR_PAIR(PAIR_RED));
-    draw_zone_status(win, sz);
     wrefresh(win);
 }
 
