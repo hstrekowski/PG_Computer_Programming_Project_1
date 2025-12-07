@@ -116,7 +116,7 @@ static void render_replay_scene(WINDOW *win, ReplayFrame *f)
 // Odtwarzanie nagranej rozgrywki
 void play_replay(ReplaySystem *r, WINDOW *gameWin, WINDOW *statWin, PlayerConfig *p, LevelConfig *l)
 {
-    const int SLEEP = 1000000 / FRAME_RATE;
+    const int SLEEP = BASE_SLEEP_TIME / FRAME_RATE;
     nodelay(gameWin, TRUE);
     int was_active = 0;
 

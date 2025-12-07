@@ -34,6 +34,7 @@
 #define PAIR_HUNTER_CYAN 5
 #define PAIR_HUNTER_MAGENTA 6
 #define PAIR_HUNTER_BLUE 7
+#define BASE_TERMINAL_BACKGROUND -1
 
 // Znaki Animacji Jaskółki
 #define SWALLOW_ANIM_UP_FLAP "^"
@@ -61,19 +62,23 @@
 // Ustawienia Safe Zone
 #define ZONE_CHAR_ACTIVE "O"
 #define ZONE_CHAR_INACTIVE " "
-#define BLINK_SLEEP_US 60000
-#define BLINK_REPEAT_COUNT 3
 #define ZONE_COOLDOWN 30
 #define ZONE_START_COOLDOWN 5
 #define ZONE_RADIUS 1
 #define ZONE_ANIMATION_STEPS 8
 #define ZONE_ANIMATION_DELAY 10000
+#define BLINK_SLEEP_US 60000
+#define BLINK_REPEAT_COUNT 3
 
 // Ustawienia Huntera
 #define HUNTER_TYPES_MAX 5
 #define HUNTER_DASH_SPEED 1.2f
 #define HUNTER_DASH_TOLERANCE 0.99
 #define HUNTER_BASE_DASH_WAIT_TIMER 22
+#define HUNTER_HALF_TIME_INCREASE 1
+#define HUNTER_QUARTER_TIME_INCREASE 2
+#define HUNTER_MINIMAL_BOUNCES 1
+#define HUNTER_BASE_BOUNCE_BOUND 3
 
 // Główne struktury danych gry
 typedef struct Stats

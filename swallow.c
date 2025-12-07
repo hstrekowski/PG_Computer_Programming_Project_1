@@ -55,7 +55,7 @@ int handle_input(Swallow *swallow, int ch)
 // Pobieranie animowanego znaku
 char *get_animated_sign(int direction, int ticker)
 {
-    int flap = (ticker / 5) % 2;
+    int flap = (ticker / (BASE_MOVE_RATE / 2)) % 2;
     switch (direction)
     {
     case UP:

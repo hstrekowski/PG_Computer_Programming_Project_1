@@ -16,13 +16,13 @@ static void setup_ncurses()
     {
         start_color();
         use_default_colors();
-        init_pair(PAIR_WHITE, COLOR_WHITE, -1);
-        init_pair(PAIR_ORANGE, COLOR_YELLOW, -1);
-        init_pair(PAIR_RED, COLOR_RED, -1);
-        init_pair(PAIR_HUNTER_GREEN, COLOR_GREEN, -1);
-        init_pair(PAIR_HUNTER_CYAN, COLOR_CYAN, -1);
-        init_pair(PAIR_HUNTER_MAGENTA, COLOR_MAGENTA, -1);
-        init_pair(PAIR_HUNTER_BLUE, COLOR_BLUE, -1);
+        init_pair(PAIR_WHITE, COLOR_WHITE, BASE_TERMINAL_BACKGROUND);
+        init_pair(PAIR_ORANGE, COLOR_YELLOW, BASE_TERMINAL_BACKGROUND);
+        init_pair(PAIR_RED, COLOR_RED, BASE_TERMINAL_BACKGROUND);
+        init_pair(PAIR_HUNTER_GREEN, COLOR_GREEN, BASE_TERMINAL_BACKGROUND);
+        init_pair(PAIR_HUNTER_CYAN, COLOR_CYAN, BASE_TERMINAL_BACKGROUND);
+        init_pair(PAIR_HUNTER_MAGENTA, COLOR_MAGENTA, BASE_TERMINAL_BACKGROUND);
+        init_pair(PAIR_HUNTER_BLUE, COLOR_BLUE, BASE_TERMINAL_BACKGROUND);
     }
 }
 

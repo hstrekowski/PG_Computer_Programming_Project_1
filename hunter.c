@@ -20,9 +20,9 @@ int get_dynamic_limit(int max, int current_frame, int total)
     int rem = total - current_frame;
     int limit = max;
     if (rem <= total / 4) // Dzielenie przez 4 (25% czasu)
-        limit += 2;
+        limit += HUNTER_QUARTER_TIME_INCREASE;
     else if (rem <= total / 2) // Dzielenie przez 2 (50% czasu)
-        limit += 1;
+        limit += HUNTER_HALF_TIME_INCREASE;
     return (limit > MAX_HUNTERS_LIMIT) ? MAX_HUNTERS_LIMIT : limit;
 }
 
@@ -88,8 +88,8 @@ void try_spawn_hunter(Hunter hunters[], Swallow *s, int fc, int tf, int freq, in
 
     // Tutaj kalkulacja, zakresu odbic w zależności od pozostałego czasu gry
     int rem = tf - fc;
-    int min_b = (rem <= tf / 4) ? 3 : ((rem <= tf / 2) ? 2 : 1);
-    h->bounces_left = (rand() % 3) + min_b;
+    int min_b = (rem <= tf / 4) ? HUNTER_MINIMAL_BOUNCES + 2 : ((rem <= tf / 2) ? HUNTER_MINIMAL_BOUNCES + 1 : HUNTER_MINIMAL_BOUNCES);
+    h->bounces_left = (rand() % HUNTER_BASE_BOUNCE_BOUND) + min_b;
 
     // Losowanie narożnika w ktorym hunter startuje
     int c = rand() % 4;
