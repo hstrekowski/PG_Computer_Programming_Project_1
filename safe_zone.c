@@ -153,6 +153,7 @@ void update_safe_zone(SafeZone *sz)
 
 void draw_safe_zone(WINDOW *win, SafeZone *sz)
 {
+    // Jeżeli safe_zone nie jest aktwny nie rysujemy
     if (!sz->is_active && sz->duration_timer < 0)
         return;
     int radius = ZONE_RADIUS;
