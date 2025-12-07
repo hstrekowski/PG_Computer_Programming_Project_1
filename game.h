@@ -55,9 +55,10 @@
 #define SWALLOW_INIT_LIVES 3
 #define SWALLOW_INIT_SPEED 1
 
-// Znaki Gwiazd
+// Ustawienia gwaizda
 #define STAR_CHAR_NORMAL "*"
 #define STAR_CHAR_AGING "+"
+#define STAR_MAX_SPEED 15
 
 // Ustawienia Safe Zone
 #define ZONE_CHAR_ACTIVE "O"

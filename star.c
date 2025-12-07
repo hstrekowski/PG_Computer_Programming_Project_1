@@ -29,7 +29,7 @@ void try_spawn_star(Star stars[], int *star_index_to_spawn, int frame_counter, i
             current_star->y = 1;
             current_star->anim_ticker = 0;
 
-            int random_speed = (rand() % 14) + 2;
+            int random_speed = (rand() % STAR_MAX_SPEED) + 2;
             current_star->speed_delay = random_speed;
             current_star->move_timer = random_speed;
             (*star_index_to_spawn)++;
