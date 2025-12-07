@@ -18,8 +18,8 @@
 #define RIGHT 96
 
 // Limity gry i ustawienia
-#define MAX_STARS_LIMIT 200
-#define MAX_HUNTERS_LIMIT 50
+#define MAX_STARS_LIMIT 1000
+#define MAX_HUNTERS_LIMIT 200
 #define FRAME_RATE 45
 #define BASE_SLEEP_TIME 1000000
 #define BASE_MOVE_RATE 10

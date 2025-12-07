@@ -17,3 +17,4 @@ PIxer 2255 1
 Pixer 1892 1
 Pixer 2541 1
 Pixer 2178 1
+Pixer 2530 1
