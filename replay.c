@@ -104,7 +104,7 @@ static void render_replay_scene(WINDOW *win, ReplayFrame *f)
             wattron(win, COLOR_PAIR(h->color_pair));
             for (int ry = 0; ry < h->height; ry++)
                 for (int rx = 0; rx < h->width; rx++)
-                    mvwprintw(win, (int)h->y + ry, (int)h->x + rx, "%d", h->bounces_left);
+                    mvwprintw(win, (int)h->y + ry, (int)h->x + rx, "%d", h->bounces_left - 1);
             wattroff(win, COLOR_PAIR(h->color_pair));
         }
     }
