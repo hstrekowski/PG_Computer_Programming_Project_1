@@ -81,7 +81,7 @@ static void draw_start_form(WINDOW *win, int box_w)
     char *lbl_nick = "ENTER NICKNAME";
     mvwprintw(win, 6, (box_w - strlen(lbl_nick)) / 2, "%s", lbl_nick);
 
-    char *lbl_lvl = "SELECT LEVEL (1-10)";
+    char *lbl_lvl = "SELECT LEVEL";
     mvwprintw(win, 9, (box_w - strlen(lbl_lvl)) / 2, "%s", lbl_lvl);
     wrefresh(win);
 }
